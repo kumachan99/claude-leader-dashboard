@@ -19,7 +19,7 @@ Claude がその日のタスクを洗い出し、タスクごとに裏のエー�
 Claude Code で次を実行する。
 
 ```
-/plugin marketplace add <owner>/claude-leader-dashboard
+/plugin marketplace add kumachan99/claude-leader-dashboard
 /plugin install leader-dashboard@claude-leader-dashboard
 ```
 

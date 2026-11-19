@@ -3,7 +3,7 @@
   "name": "claude-leader-dashboard",
   "description": "「今日のリーダー」を Claude Code に任せるプラグインの配布元",
   "owner": {
-    "name": "claude-leader-dashboard"
+    "name": "kumachan99"
   },
   "plugins": [
     {
@@ -11,7 +11,13 @@
       "source": "./plugins/leader-dashboard",
       "description": "その日のタスクを Claude がエージェントで下書きまで進め、判断が要ることだけをローカルのダッシュボードに並べる。利用者は選択肢とメモで答える",
       "category": "productivity",
-      "keywords": ["dashboard", "delegation", "agents", "decisions", "japanese"]
+      "keywords": [
+        "dashboard",
+        "delegation",
+        "agents",
+        "decisions",
+        "japanese"
+      ]
     }
   ]
 }
