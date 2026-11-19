@@ -63,6 +63,7 @@
   .g.running::before { inset: 1px; border-radius: 50%; border: 2.5px solid var(--run); border-top-color: transparent; transform: rotate(45deg); }
   .g.done::before { inset: 0; border-radius: 50%; background: var(--done); }
   .g.done::after { left: 4.3px; top: 2.4px; width: 3.4px; height: 6.2px; border: solid #fff; border-width: 0 1.8px 1.8px 0; transform: rotate(45deg); }
+  .g.idle::before { inset: 2px; border-radius: 50%; border: 2px solid var(--muted); }
   .tag { display: inline-block; font-size: 11px; font-weight: 700; border-radius: 4px; padding: 0 6px; line-height: 17px; white-space: nowrap; }
   .tag.urg { color: var(--urgent-ink); background: var(--urgent-wash); }
   .upd { display: inline-block; font-size: 11px; font-weight: 700; color: var(--on-claude); background: var(--claude); border-radius: 4px; padding: 0 6px; line-height: 17px; white-space: nowrap; }
@@ -175,6 +176,16 @@
   .brk { display: flex; flex-wrap: wrap; gap: 0 10px; margin-top: 3px; font-size: 12px; color: var(--sub); line-height: 1.6; }
   .brk span { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
   .brk b { font: 700 13px var(--fig); color: var(--ink); }
+  /* プロジェクトの担当エージェント（projects[].lead があるときだけ） */
+  .lead { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 8px; padding: 7px 14px 8px; font-size: 12px; line-height: 1.55;
+          background: var(--surface-2); border-bottom: 1px solid var(--line); }
+  .lead-st { display: inline-flex; align-items: center; gap: 5px; font-weight: 700; white-space: nowrap; }
+  .lead-who { font-weight: 400; color: var(--sub); margin-right: 3px; }
+  .lead.working .lead-st { color: var(--claude-ink); }
+  .lead.waiting .lead-st { color: var(--you-ink); }
+  .lead.idle .lead-st { color: var(--sub); }
+  .lead-at { font: 12px/1.55 var(--fig); color: var(--muted); }
+  .lead-sum { grid-column: 1 / -1; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .lane-items { min-height: 0; overflow: auto; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
   .tok { display: grid; grid-template-columns: 12px minmax(0, 1fr); gap: 2px 9px; width: 100%; padding: 8px 10px; text-align: left; color: inherit;
          border-radius: var(--r-md); border: 1px solid var(--line); background: var(--surface); }
@@ -206,7 +217,8 @@
   /* ---------- プロジェクト ---------- */
   .pj { display: grid; grid-template-columns: 316px minmax(0, 1fr); gap: 14px; height: 100%; }
   .list { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: auto; padding-bottom: 6px; }
-  .list-h { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--line); border-radius: var(--r-lg) var(--r-lg) 0 0; }
+  .list-top { position: sticky; top: 0; z-index: 1; background: var(--surface); border-radius: var(--r-lg) var(--r-lg) 0 0; }
+  .list-h { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--line); border-radius: var(--r-lg) var(--r-lg) 0 0; }
   .list-h .lane-name { font-size: 14.5px; }
   .grp { font-size: 12px; color: var(--sub); padding: 12px 16px 4px; font-weight: 700; letter-spacing: .04em; }
   .row { display: grid; grid-template-columns: 12px 1fr; gap: 0 10px; padding: 8px 14px 8px 13px; cursor: pointer; border-left: 3px solid transparent; }
@@ -480,6 +492,16 @@ function tickClock() {
 }
 setInterval(tickClock, 30000);
 
+// ---------- プロジェクトの担当エージェント（projects[].lead。無ければ何も出さない） ----------
+const LEAD = { working: "作業中", idle: "待機", waiting: "答え待ち" };
+function leadHtml(p) {
+  const l = p.lead; if (!l || typeof l !== "object") return "";
+  const st = LEAD[l.status] ? l.status : "idle", g = { working: "running", idle: "idle", waiting: "decide" }[st];
+  const at = hm(l.updated)?.text || "", sum = String(l.summary || "");
+  return `<div class="lead ${st}" data-tip="${esc(`担当：${LEAD[st]}${at ? "（" + at + "）" : ""}${sum ? "　" + sum : ""}`)}"><span class="lead-st"><span class="lead-who">担当</span>${glyph(g)}${LEAD[st]}</span>` +
+    `<span class="lead-at">${esc(at)}</span>${sum ? `<span class="lead-sum">${esc(sum)}</span>` : ""}</div>`;
+}
+
 // ---------- 全体のタブ ----------
 const rank = it => { const st = itemState(it); return st === "decide" ? (it.urgent ? 0 : 1) : { answered: 2, running: 3, done: 4 }[st]; };
 function tokHtml(it) {
@@ -495,7 +517,7 @@ function laneHtml(p) {
   else if (!shown.length) body = `<div class="lane-note">${glyph("done")}すべて済み（${c.done}件）</div>`;
   else if (!ui.showDone && c.done) body += `<div class="lane-note">済み ${c.done} 件は畳んでいます</div>`;
   return `<article class="lane"><button type="button" class="lane-h ov-node" data-tab="${esc(p.id)}">${ringSvg(c, 58)}<span><span class="lane-name">${esc(p.label)}${up ? `<span class="upd">更新 ${up}</span>` : ""}</span>${breakdown(c)}</span></button>` +
-    `<div class="lane-items">${body}</div></article>`;
+    `${leadHtml(p)}<div class="lane-items">${body}</div></article>`;
 }
 
 // ---------- 描画 ----------
@@ -538,9 +560,11 @@ function render() {
   setTitle();
 }
 
-// 光らせた後に印を消すための描き直し（入力中は描き直さない）
+// 光らせた後に印を消すための描き直し（入力中は描き直さない）。前の予約は取り消す（開いたばかりの光りを途中で消さない）
+let rerenderTimer;
 function rerenderLater() {
-  setTimeout(() => {
+  clearTimeout(rerenderTimer);
+  rerenderTimer = setTimeout(() => {
     if (!state || typing()) return;
     const body = $(".d-b"), y = body ? body.scrollTop : 0;
     render();
@@ -582,7 +606,7 @@ function renderProject(pj, itemId) {
   const act = activeOrder(pj), dn = doneOrder(pj), cur = currentOf(pj, itemId);
   const p = state.projects.find(x => x.id === pj), c = countStates(itemsOf(pj));
   if (cur && isDone(cur)) ui.open["done-" + pj] = true;
-  let list = `<div class="list-h">${ringSvg(c, 46)}<div><div class="lane-name">${esc(p.label)}</div>${breakdown(c)}</div></div>`;
+  let list = `<div class="list-top"><div class="list-h">${ringSvg(c, 46)}<div><div class="lane-name">${esc(p.label)}</div>${breakdown(c)}</div></div>${leadHtml(p)}</div>`;
   list += act.length ? grouped(act).map(g => (g.name ? `<div class="grp">${esc(g.name)}</div>` : "") + g.items.map(it => rowHtml(it, cur)).join("")).join("")
     : `<div class="empty">残っている項目はありません</div>`;
   if (dn.length) list += `<details class="donebox" data-key="done-${esc(pj)}" ${ui.open["done-" + pj] ? "open" : ""}><summary>${glyph("done")}済み（${dn.length}）</summary>${dn.map(it => rowHtml(it, cur)).join("")}</details>`;
@@ -724,7 +748,7 @@ async function poll() {
       const lv = $("#live"); if (lv) { lv.classList.remove("ping"); void lv.offsetWidth; lv.classList.add("ping"); }
     }
     prevLogN = ln;
-    const cmp = txt.replace(/"generated":"[^"]*"/, "");
+    const cmp = txt.replace(/"generated":\s*"[^"]*"/, "");  // 時刻だけが変わったときは描き直さない
     if (cmp !== lastJson && !typing()) {
       lastJson = cmp; state = j;
       const body = $(".d-b"), y = body ? body.scrollTop : 0;
