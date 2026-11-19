@@ -1,0 +1,27 @@
+{
+  "description": "今日のリーダーの作業フォルダーがあるとき、会話の始め（起動・再開・/clear・圧縮の後）に再開に要ることを数行で出し、振り分けていない答えがあれば利用者の発言ごとに1行で知らせる",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/skills/leader/scripts/leader_hook.py\" session-start",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/skills/leader/scripts/leader_hook.py\" prompt",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

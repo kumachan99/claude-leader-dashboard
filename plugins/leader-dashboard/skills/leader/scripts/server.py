@@ -6,30 +6,40 @@
   python3 -I server.py --dir .leader/2026-11-19 --root . --check   # items.json の点検だけ
 
 作業フォルダー（--dir）に置くもの:
-  items.json       項目の定義（Claude が書く。要求のたびに読み直す）
-  leader.json      Claude の返事・状態・動いたこと（reply.py で書く）
-  decisions.jsonl  利用者の答え（このサーバーが1行ずつ足す）
-無いファイルは空として扱う。
+  items.json         項目の定義（Claude が書く。要求のたびに読み直す）
+  items/<id>.json    プロジェクトごとの項目（担当のエージェントが item.py で書く）。items.json と合わせて返す
+  leader.json        Claude の返事・状態・動いたこと（reply.py で書く）
+  decisions.jsonl    利用者の答え（このサーバーが1行ずつ足す）
+  cursor             リーダーが振り分け済みの行数（route.py が書く）
+  server.json        起動中のサーバーの URL・pid（このサーバーが書き、止まるときに消す）
+無いファイルは空として扱う。--dir を省くと、環境変数 LEADER_DASHBOARD_DIR か .leader/<今日の日付>。
 
 GET  /               index.html
 GET  /api/state      items.json＋下書きの本文＋答え＋返事
 POST /api/decision   {"qid","choice","note"} を decisions.jsonl に1行足す
 POST /api/message    {"text", "item"} を decisions.jsonl に1行足す（qid は "message"）
+POST /api/done       {"item", "done": true|false} を decisions.jsonl に1行足す（qid は "__done__"）。
+                     state の各項目に最後の操作を user_done で付け、status は最後の操作が勝つ
 
 下書きの src は --root からの相対パスで、毎回ファイルから読む。--root の外は読まない。
 svg_file は作業フォルダーからの相対パスで、作業フォルダーの外は読まない。
 依存は Python の標準ライブラリだけ（3.9 以上）。
 """
 import argparse
+import atexit
 import datetime
 import hashlib
 import http.server
 import json
+import os
 import pathlib
 import re
+import signal
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))  # python3 -I でも同じフォルダーの leaderlib を読む
+import leaderlib  # noqa: E402
 HOST = "127.0.0.1"
 STATUSES = ("decide", "running", "done")
 MAX_FILE = 2_000_000  # 下書き・SVG として読むファイルの上限（バイト）
@@ -164,30 +174,25 @@ def safe_url(u):
 
 # ---------- 状態を組み立てる ----------
 
-def read_json(path, default):
-    if not path.exists():
-        return default, None
-    try:
-        return json.loads(path.read_text(encoding="utf-8")), None
-    except (ValueError, OSError) as e:
-        return default, f"{path.name} が読めない: {e}"
+read_json = leaderlib.read_json
 
 
-def load_decisions(path):
-    latest, messages = {}, []
-    if path.exists():
-        for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
-            try:
-                d = json.loads(line)
-            except ValueError:
-                continue
-            if not isinstance(d, dict):
-                continue
-            if d.get("qid") == "message":
-                messages.append(d)
-            else:
-                latest[d.get("qid")] = d
-    return latest, messages
+def load_decisions(work, cursor):
+    """答えを読む。各行に行番号（line）と、リーダーが振り分け済みか（routed）を付ける。
+
+    返り値: (問いの id → 最後の答え, 一言の一覧, 項目の id → 完了ボタンの最後の操作)
+    """
+    latest, messages, done = {}, [], {}
+    for n, d in leaderlib.read_decisions(work):
+        d = dict(d, line=n, routed=n <= cursor)
+        if d.get("qid") == "message":
+            messages.append(d)
+        elif d.get("qid") == leaderlib.DONE_QID:
+            if d.get("item"):
+                done[str(d["item"])] = d  # 「完了」「未完了に戻す」。最後の操作が勝つ
+        else:
+            latest[d.get("qid")] = d
+    return latest, messages, done
 
 
 def as_list(v):
@@ -195,31 +200,31 @@ def as_list(v):
 
 
 def build_state(cfg):
-    errors, warnings = [], []
-    data, err = read_json(cfg.dir / "items.json", {})
-    if err:
-        errors.append(err)
-    if not isinstance(data, dict):
-        errors.append("items.json の一番外はオブジェクト（{...}）にする")
-        data = {}
+    data, errors, warnings, files = leaderlib.load_items(cfg.dir)
     leader, err = read_json(cfg.dir / "leader.json", {})
     if err:
         errors.append(err)
     if not isinstance(leader, dict):
         leader = {}
-    status_over = leader.get("status") if isinstance(leader.get("status"), dict) else {}
     replies = leader.get("replies") if isinstance(leader.get("replies"), dict) else {}
-    latest, messages = load_decisions(cfg.dir / "decisions.jsonl")
+    cursor = leaderlib.read_cursor(cfg.dir)
+    total = leaderlib.count_lines(cfg.dir / "decisions.jsonl")
+    latest, messages, done = load_decisions(cfg.dir, cursor)
 
     projects = [dict(p) for p in as_list(data.get("projects")) if isinstance(p, dict) and p.get("id")]
     for p in projects:
         p["id"], p["label"] = str(p["id"]), str(p.get("label") or p["id"])
+        lead = leaderlib.clean_lead(p.get("lead"))
+        if lead:
+            p["lead"] = lead
+        else:
+            p.pop("lead", None)
     known = {p["id"] for p in projects}
 
     out_items, seen_items, seen_q = [], set(), set()
     for n, raw in enumerate(as_list(data.get("items")), 1):
         if not isinstance(raw, dict):
-            warnings.append(f"items の {n} 番目がオブジェクトでない")
+            warnings.append(f"items.json: items の {n} 番目がオブジェクトでない")
             continue
         it = dict(raw)
         it["id"] = str(it.get("id") or f"item-{n}")
@@ -232,8 +237,9 @@ def build_state(cfg):
             known.add(it["project"])
         it["title"] = str(it.get("title") or it["id"])
         it["group"] = str(it.get("group") or "")
-        st = status_over.get(it["id"], it.get("status", "decide"))
-        it["status"] = st if st in STATUSES else "decide"
+        it["status"] = leaderlib.effective_status(it, leader, done)
+        if it["id"] in done:
+            it["user_done"] = done[it["id"]]
         it["summary"] = [str(x) for x in as_list(it.get("summary"))]
         it["details"] = [str(x) for x in as_list(it.get("details"))]
         it["links"] = [{"label": str(l.get("label") or l.get("url")), "url": safe_url(l.get("url"))}
@@ -270,8 +276,8 @@ def build_state(cfg):
                 continue
             q = dict(q)
             q["id"] = str(q["id"])
-            if q["id"] == "message":
-                warnings.append(f"{it['id']}: 問いの id に message は使えない")
+            if q["id"] in leaderlib.RESERVED_QIDS:
+                warnings.append(f"{it['id']}: 問いの id に {q['id']} は使えない")
                 continue
             if q["id"] in seen_q:
                 warnings.append(f"問いの id が重なっている: {q['id']}")
@@ -295,21 +301,17 @@ def build_state(cfg):
         "items": out_items,
         "messages": messages,
         "log": [l for l in as_list(leader.get("log")) if isinstance(l, dict)],
+        # リーダーが route.py で振り分けた所（cursor）と、まだ振り分けていない答えの数
+        "routing": {"total": total, "cursor": min(cursor, total), "pending": max(0, total - cursor)},
+        "files": files,
         "errors": errors,
         "warnings": warnings,
     }
 
 
 def find_item_of(cfg, qid):
-    data, _ = read_json(cfg.dir / "items.json", {})
-    if not isinstance(data, dict):
-        return None
-    for it in as_list(data.get("items")):
-        if isinstance(it, dict):
-            for q in as_list(it.get("questions")):
-                if isinstance(q, dict) and str(q.get("id")) == qid:
-                    return str(it.get("id"))
-    return None
+    data = leaderlib.load_items(cfg.dir)[0]
+    return leaderlib.item_index(data)[1].get(qid)
 
 
 # ---------- HTTP ----------
@@ -384,7 +386,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self._json(400, {"ok": False})
         if self.path == "/api/decision":
             qid = str(body.get("qid", ""))[:80]
-            if not qid or qid == "message":
+            if not qid or qid in leaderlib.RESERVED_QIDS:
                 return self._json(400, {"ok": False, "error": "qid が要る"})
             rec = {"ts": now(), "item": find_item_of(self.cfg, qid), "qid": qid,
                    "choice": str(body.get("choice", ""))[:200], "note": str(body.get("note", ""))[:4000]}
@@ -396,6 +398,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
             item = str(body.get("item") or "")[:80]
             if item:
                 rec["item"] = item
+        elif self.path == "/api/done":
+            item = str(body.get("item") or "")[:80]
+            done = body.get("done", True)
+            if not item or not isinstance(done, bool):
+                return self._json(400, {"ok": False, "error": "item と done（true / false）が要る"})
+            if item not in leaderlib.item_index(leaderlib.load_items(self.cfg.dir)[0])[0]:
+                return self._json(404, {"ok": False, "error": f"項目 {item} が無い"})
+            rec = {"ts": now(), "qid": leaderlib.DONE_QID, "item": item, "done": done}
         else:
             return self._json(404, {"ok": False})
         with (self.cfg.dir / "decisions.jsonl").open("a", encoding="utf-8") as f:
@@ -408,14 +418,40 @@ class Config:
         self.dir, self.root = dir, root
 
 
+def write_server_info(work, url, port):
+    """フックが URL と生死を知るための server.json を書き、止まるときに消す。"""
+    path = work / "server.json"
+    leaderlib.write_json(path, {
+        "url": url, "port": port, "pid": os.getpid(), "started": leaderlib.now(),
+        # 起動したセッション（Claude Code が Bash に渡す。無ければ空）。フックが別のセッションを見分ける
+        "session": os.environ.get("CLAUDE_CODE_SESSION_ID", ""),
+    })
+
+    def cleanup(*_):
+        try:
+            data, _ = read_json(path, {})
+            if isinstance(data, dict) and data.get("pid") == os.getpid():
+                path.unlink()
+        except OSError:
+            pass
+
+    atexit.register(cleanup)
+
+    def on_term(signum, frame):
+        sys.exit(0)  # atexit を走らせる
+
+    signal.signal(signal.SIGTERM, on_term)
+    signal.signal(signal.SIGHUP, on_term)
+
+
 def main():
     ap = argparse.ArgumentParser(description="リーダーのダッシュボード（127.0.0.1 だけで受ける）")
-    ap.add_argument("--dir", default=None, help="作業フォルダー（既定は .leader/<今日の日付>）")
+    ap.add_argument("--dir", default=None, help="作業フォルダー（既定は環境変数 LEADER_DASHBOARD_DIR か .leader/<今日の日付>）")
     ap.add_argument("--port", type=int, default=8765)
     ap.add_argument("--root", default=".", help="下書きの src を読む起点（既定はカレントディレクトリ）")
-    ap.add_argument("--check", action="store_true", help="items.json を点検して終わる")
+    ap.add_argument("--check", action="store_true", help="items.json と items/*.json を点検して終わる")
     a = ap.parse_args()
-    work = pathlib.Path(a.dir or f".leader/{datetime.date.today().isoformat()}").expanduser().resolve()
+    work = (pathlib.Path(a.dir).expanduser() if a.dir else leaderlib.default_workdir()).resolve()
     root = pathlib.Path(a.root).expanduser().resolve()
     if not root.is_dir():
         sys.exit(f"--root がフォルダーでない: {root}")
@@ -430,6 +466,7 @@ def main():
             for m in msgs:
                 print(f"{k}: {m}")
         n_q = sum(len(it["questions"]) for it in st["items"])
+        print(f"読んだ: {'・'.join(st['files']) or '（項目のファイルが無い）'}")
         print(f"項目 {len(st['items'])}・問い {n_q}・タブ {len(st['projects'])}")
         sys.exit(1 if st["errors"] or bad else 0)
 
@@ -440,7 +477,9 @@ def main():
     except OSError as e:
         sys.exit(f"ポート {a.port} で起動できない（使用中かもしれない）: {e}")
     srv.cfg = cfg
-    print(f"ダッシュボード: http://{HOST}:{a.port}/", flush=True)
+    url = f"http://{HOST}:{a.port}/"
+    write_server_info(work, url, a.port)
+    print(f"ダッシュボード: {url}", flush=True)
     print(f"作業フォルダー: {work}", flush=True)
     print(f"下書きの起点:   {root}", flush=True)
     try:

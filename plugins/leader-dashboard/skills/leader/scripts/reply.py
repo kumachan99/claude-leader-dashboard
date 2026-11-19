@@ -6,41 +6,35 @@
   python3 -I reply.py <作業フォルダー> --status trip-inn done
   python3 -I reply.py <作業フォルダー> --log "宿の予約を済ませた"
   python3 -I reply.py <作業フォルダー> --headline "残りの判断待ちは2件です"
+  python3 -I reply.py <作業フォルダー> --project blog --qid blog-publish-ok --text "直した" --log "本文を直した"
   （まとめて1回でもよい。--qid/--text の組、--status、--log は何度でも付けられる）
+
+--project を付けると、--log の行にプロジェクトの id が付く（担当のエージェントが自分の動きを書くとき）。
+項目の状態は、items/<project>.json の項目なら item.py status で変える（--status は items.json の項目向け）。
 
 leader.json の形:
   {"headline": "...", "status": {"<項目の id>": "decide|running|done"},
-   "replies": {"<問いの id>": "..."}, "log": [{"ts": "...", "text": "..."}]}
+   "replies": {"<問いの id>": "..."}, "log": [{"ts": "...", "text": "...", "project"?: "..."}]}
 """
 import argparse
-import datetime
 import json
-import os
 import pathlib
 import sys
-import tempfile
 
-try:
-    import fcntl
-except ImportError:  # Windows では排他をあきらめる
-    fcntl = None
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import leaderlib  # noqa: E402
 
-STATUSES = ("decide", "running", "done")
-
-
-def now():
-    return datetime.datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S")
+STATUSES = leaderlib.STATUSES
+now = leaderlib.now
 
 
 def known_ids(work):
-    """items.json にある項目の id と問いの id（読めなければ None）。"""
-    try:
-        data = json.loads((work / "items.json").read_text(encoding="utf-8"))
-        items = [i for i in data.get("items", []) if isinstance(i, dict)]
-    except (OSError, ValueError, AttributeError):
+    """items.json と items/*.json にある項目の id と問いの id（どれも読めなければ None）。"""
+    data, errors, _, files = leaderlib.load_items(work)
+    if not files or errors:
         return None, None
-    qids = {str(q.get("id")) for i in items for q in i.get("questions", []) if isinstance(q, dict)}
-    return {str(i.get("id")) for i in items}, qids
+    items, qowner = leaderlib.item_index(data)
+    return set(items), set(qowner)
 
 
 def main():
@@ -52,6 +46,7 @@ def main():
                     help="項目の状態を変える（decide / running / done）")
     ap.add_argument("--log", action="append", default=[], help="「動いたこと」に1行足す")
     ap.add_argument("--headline", help="全体のタブの見出しを変える")
+    ap.add_argument("--project", help="--log の行に付けるプロジェクトの id（担当が書くとき）")
     a = ap.parse_args()
 
     if len(a.qid) != len(a.text):
@@ -68,16 +63,13 @@ def main():
     items, qids = known_ids(work)
     for qid in a.qid:
         if qids is not None and qid not in qids:
-            print(f"注意: items.json に問い {qid} が無い（書くことは書く）", file=sys.stderr)
+            print(f"注意: 項目のファイルに問い {qid} が無い（書くことは書く）", file=sys.stderr)
     for item, _ in a.status:
         if items is not None and item not in items:
-            print(f"注意: items.json に項目 {item} が無い（書くことは書く）", file=sys.stderr)
+            print(f"注意: 項目のファイルに項目 {item} が無い（書くことは書く）", file=sys.stderr)
 
     path = work / "leader.json"
-    lock = open(work / ".leader.lock", "w")
-    try:
-        if fcntl:
-            fcntl.flock(lock, fcntl.LOCK_EX)
+    with leaderlib.leader_lock(work):
         data = {}
         if path.exists():
             try:
@@ -102,19 +94,16 @@ def main():
             data["status"][item] = st
             done.append(f"状態 {item}={st}")
         for text in a.log:
-            data["log"].append({"ts": now(), "text": text})
+            entry = {"ts": now(), "text": text}
+            if a.project:
+                entry["project"] = a.project
+            data["log"].append(entry)
             done.append("ログ 1行")
         if a.headline is not None:
             data["headline"] = a.headline
             done.append("見出し")
 
-        fd, tmp = tempfile.mkstemp(dir=work, prefix=".leader.", suffix=".tmp")
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-            f.write("\n")
-        os.replace(tmp, path)
-    finally:
-        lock.close()
+        leaderlib.write_json(path, data)
     print("書いた: " + "、".join(done))
 
 

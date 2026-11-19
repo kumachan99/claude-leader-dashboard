@@ -1,7 +1,7 @@
 {
   "name": "leader-dashboard",
-  "version": "0.1.0",
-  "description": "その日のタスクを Claude がエージェントで下書きまで進め、判断が要ることだけをローカルのダッシュボード（127.0.0.1）に並べる。利用者は選択肢とメモで答え、Claude は答えを受けて動く",
+  "version": "0.2.0",
+  "description": "その日のタスクを Claude がエージェントで下書きまで進め、判断が要ることだけをローカルのダッシュボード（127.0.0.1）に並べる。利用者は選択肢とメモで答え、Claude は答えを受けて動く。プロジェクトごとの担当のエージェント・答えの振り分け・引き継ぎのメモ・フックで、リーダーの会話を膨らませない",
   "license": "MIT",
   "keywords": ["dashboard", "delegation", "agents", "decisions", "japanese"]
 }

@@ -1,0 +1,35 @@
+{
+  "project": {
+    "id": "trip",
+    "label": "旅行",
+    "lead": {"status": "working", "summary": "宿の比較を終え、特急の時刻を調べている", "updated": "11/19 09:52"}
+  },
+  "items": [
+    {
+      "id": "trip-inn",
+      "group": "12 月の温泉旅行",
+      "title": "宿を決めて、問い合わせを送る",
+      "status": "decide",
+      "urgent": true,
+      "summary": [
+        "候補を2つに絞った。A は駅から近く安い、B は露天風呂つきの部屋",
+        "A の早割は **11/22 まで**",
+        "問い合わせの文はできた。送るのはあなたの答えの後"
+      ],
+      "drafts": [
+        {"label": "宿への問い合わせ", "where": "宿の問い合わせフォームに貼る",
+         "src": {"file": "notes/trip.md", "heading": "## 問い合わせの文"}}
+      ],
+      "questions": [
+        {"id": "trip-inn-pick", "text": "どちらの宿にする？", "options": ["A（駅から近い・早割）", "B（露天風呂つき）", "もう少し探す"]}
+      ]
+    },
+    {
+      "id": "trip-train",
+      "group": "12 月の温泉旅行",
+      "title": "特急の指定席を取る",
+      "status": "running",
+      "summary": ["宿が決まってから取る。時刻表を調べている"]
+    }
+  ]
+}

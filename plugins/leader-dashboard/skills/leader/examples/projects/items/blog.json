@@ -1,0 +1,39 @@
+{
+  "project": {
+    "id": "blog",
+    "label": "ブログ",
+    "lead": {"status": "waiting", "summary": "本文と告知の下書きを出した。公開の判断待ち", "updated": "11/19 09:40"}
+  },
+  "items": [
+    {
+      "id": "blog-publish",
+      "group": "今週の記事",
+      "title": "記事「週末に作った本棚」を公開する",
+      "status": "decide",
+      "urgent": true,
+      "summary": [
+        "本文は約 260 字。写真6枚のうち、3枚目だけ暗い",
+        "告知の文は約 80 字。ハッシュタグは1つ",
+        "**公開のボタンを押すのはあなた**。Claude は下書きまで"
+      ],
+      "details": ["過去の記事では、土曜の朝に公開したものがいちばん読まれている"],
+      "links": [{"label": "ブログの管理画面", "url": "https://example.com/blog/admin"}],
+      "drafts": [
+        {"label": "本文", "where": "ブログの編集画面に貼る", "link": "https://example.com/blog/admin/new",
+         "src": {"file": "notes/blog.md", "heading": "## 本文の下書き", "whole": true}},
+        {"label": "告知の文", "where": "SNS に、公開の後で", "src": {"file": "notes/blog.md", "heading": "## 告知の文"}}
+      ],
+      "questions": [
+        {"id": "blog-publish-ok", "text": "この本文で公開する？", "options": ["公開してよい", "直してから（直す所をメモに）", "保留"]},
+        {"id": "blog-announce-when", "text": "告知はいつ出す？", "options": ["公開と同時", "翌朝 8 時", "出さない"]}
+      ]
+    },
+    {
+      "id": "blog-next",
+      "group": "次の記事",
+      "title": "次の記事の題材を決める",
+      "status": "running",
+      "summary": ["候補を3つに絞っている。写真の有無を確かめている"]
+    }
+  ]
+}

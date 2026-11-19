@@ -5,5 +5,10 @@ __pycache__/
 .leader/
 .leader.lock
 .leader.*.tmp
+.*.lock
+.*.tmp
 decisions.jsonl
 leader.json
+cursor
+roster.json
+server.json
