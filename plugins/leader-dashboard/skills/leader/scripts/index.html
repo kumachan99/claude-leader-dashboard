@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>今日のリーダー</title>
+<style>
+  :root {
+    --ink: #151515; --sub: #5a5a5a; --line: #e2e2e2; --bg: #f6f6f4; --card: #fff;
+    --red: #d42a2a; --amber: #f5a524; --amber-bg: #fff6e5; --blue: #2b6fd6; --blue-bg: #eaf2ff;
+    --green: #2e8b57; --green-bg: #e8f5ee; --grey-bg: #f0f0f0; --flash: #fff1a8;
+    --hdr: 132px;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--ink); overflow: hidden;
+         font: 15px/1.7 "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", system-ui, sans-serif; }
+  header { background: #fff; border-bottom: 1px solid var(--line); height: var(--hdr); }
+  .bar { max-width: 1320px; margin: 0 auto; padding: 10px 20px 0; display: flex; gap: 14px; align-items: center; flex-wrap: nowrap; }
+  .bar h1 { font-size: 16px; margin: 0; white-space: nowrap; }
+  .bar h1 b { color: var(--red); }
+  .spacer { flex: 1; }
+  .muted { color: var(--sub); font-size: 13px; }
+  .sched { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 1px 9px; margin-right: 4px; border-radius: 999px; font-size: 12.5px; background: var(--grey-bg); white-space: nowrap; }
+  .chip.amber { background: var(--amber-bg); color: #8a5a00; }
+  .chip.blue { background: var(--blue-bg); color: var(--blue); }
+  .chip.green { background: var(--green-bg); color: var(--green); }
+  /* Claude の最新の動き（ヘッダーの帯）と、どのタブからでも送れる一言 */
+  .ticker { max-width: 1320px; margin: 6px auto 0; padding: 0 20px; display: flex; gap: 10px; align-items: center; font-size: 13.5px; }
+  .ticker .who { font-weight: 700; color: var(--green); white-space: nowrap; }
+  .ticker .txt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; border-radius: 6px; padding: 1px 6px; }
+  .ticker form { display: flex; gap: 6px; width: 440px; flex-shrink: 0; }
+  .ticker input { flex: 1; font: inherit; font-size: 13.5px; padding: 3px 10px; border: 1px solid var(--line); border-radius: 8px; }
+  .tabs { max-width: 1320px; margin: 6px auto 0; padding: 0 20px; display: flex; gap: 4px; overflow-x: auto; }
+  .tab { border: 1px solid transparent; border-bottom: none; background: none; padding: 7px 16px 8px; border-radius: 10px 10px 0 0; font-size: 14.5px; color: var(--sub); display: flex; gap: 7px; align-items: center; white-space: nowrap; }
+  .tab:hover { background: #fafafa; }
+  .tab.on { background: var(--bg); border-color: var(--line); color: var(--ink); font-weight: 700; position: relative; top: 1px; }
+  .badge { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--amber); color: #fff; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+  .badge.zero { background: #d6d6d6; }
+  .newdot { font-size: 11px; font-weight: 700; color: #fff; background: var(--blue); border-radius: 9px; padding: 0 7px; line-height: 18px; }
+  main { max-width: 1320px; margin: 0 auto; padding: 14px 20px; height: calc(100% - var(--hdr)); display: flex; flex-direction: column; gap: 10px; }
+  .view { flex: 1; min-height: 0; }
+  .banner { border-radius: 10px; padding: 8px 14px; font-size: 13.5px; }
+  .banner.err { background: #fdecec; color: var(--red); }
+  .banner.warn { background: var(--amber-bg); color: #8a5a00; }
+  .banner div + div { margin-top: 2px; }
+  /* 全体 */
+  .ov { display: grid; grid-template-columns: 1.5fr 1fr; grid-template-rows: minmax(0, auto) minmax(0, 1fr); gap: 14px; height: 100%; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; min-height: 0; }
+  .panel h2 { font-size: 13.5px; margin: 0 0 8px; color: var(--sub); font-weight: 600; display: flex; gap: 10px; align-items: center; }
+  .ov .wide { grid-column: 1 / 3; overflow: auto; }
+  .scroll { overflow: auto; }
+  .log { margin: 0; padding: 0; list-style: none; }
+  .log li { padding: 5px 6px; border-bottom: 1px dashed var(--line); font-size: 14px; border-radius: 6px; }
+  .log .ts { color: var(--sub); font-size: 12px; margin-right: 8px; font-variant-numeric: tabular-nums; }
+  .empty { color: var(--sub); padding: 14px; font-size: 13.5px; }
+  .empty.big { padding: 28px 8px; text-align: center; font-size: 15px; }
+  .empty code { background: var(--grey-bg); padding: 1px 6px; border-radius: 4px; }
+  textarea { width: 100%; min-height: 60px; font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; resize: vertical; }
+  button { font: inherit; cursor: pointer; border-radius: 8px; border: 1px solid var(--line); background: #fff; padding: 4px 12px; color: var(--ink); }
+  button:disabled { opacity: .4; cursor: default; }
+  button.primary { white-space: nowrap; min-width: 4.5em; background: var(--ink); color: #fff; border-color: var(--ink); }
+  label.tog { font-size: 12.5px; color: var(--sub); font-weight: 400; display: inline-flex; gap: 4px; align-items: center; cursor: pointer; white-space: nowrap; }
+  /* プロジェクト */
+  .pj { display: grid; grid-template-columns: 310px 1fr; gap: 14px; height: 100%; }
+  .list { background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: auto; padding: 6px 0; }
+  .grp { font-size: 12px; color: var(--sub); padding: 10px 14px 4px; font-weight: 600; letter-spacing: .03em; }
+  .row { display: grid; grid-template-columns: 12px 1fr; gap: 8px; padding: 8px 14px; cursor: pointer; border-left: 3px solid transparent; }
+  .row:hover { background: #fafafa; }
+  .row.on { background: #f3f3f1; border-left-color: var(--ink); }
+  .row.donerow .t { color: var(--sub); }
+  .dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 6px; }
+  .dot.decide { background: var(--amber); } .dot.answered { background: var(--blue); } .dot.done { background: var(--green); } .dot.running { background: #999; }
+  .row .t { font-size: 14px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .row .s { font-size: 11.5px; color: var(--sub); display: flex; gap: 6px; align-items: center; }
+  .upd { font-size: 10.5px; font-weight: 700; color: #fff; background: var(--blue); border-radius: 4px; padding: 0 5px; line-height: 16px; }
+  details.donebox { border-top: 1px solid var(--line); margin-top: 8px; }
+  details.donebox > summary { padding: 8px 14px; font-size: 12.5px; color: var(--sub); cursor: pointer; list-style: none; }
+  details.donebox > summary::-webkit-details-marker { display: none; }
+  details.donebox > summary::before { content: "▸ "; } details.donebox[open] > summary::before { content: "▾ "; }
+  .detail { background: var(--card); border: 1px solid var(--line); border-radius: 12px; display: flex; flex-direction: column; min-height: 0; }
+  .d-h { display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-bottom: 1px solid var(--line); border-radius: 12px 12px 0 0; }
+  .d-h h3 { margin: 0; font-size: 16px; flex: 1; }
+  .urgent { color: var(--red); font-weight: 700; font-size: 13px; white-space: nowrap; }
+  .d-b { padding: 6px 18px 18px; overflow: auto; flex: 1; }
+  .d-f { display: flex; gap: 8px; align-items: center; padding: 8px 18px; border-top: 1px solid var(--line); }
+  .d-b ul { margin: 6px 0 8px; padding-left: 1.2em; }
+  .d-b li { margin: 2px 0; }
+  .d-b code, .log code, .ticker code { background: var(--grey-bg); padding: 0 5px; border-radius: 4px; font-size: .92em; }
+  details.more { margin: 4px 0 10px; }
+  details.more summary { cursor: pointer; color: var(--sub); font-size: 13px; }
+  .links a { margin-right: 14px; font-size: 14px; }
+  .draft { border: 1px solid var(--line); border-radius: 10px; margin: 10px 0; }
+  .draft-h { display: flex; gap: 10px; align-items: center; padding: 7px 12px; background: #fafafa; border-bottom: 1px solid var(--line); border-radius: 10px 10px 0 0; flex-wrap: wrap; }
+  .draft-h b { font-size: 14px; }
+  .draft pre { margin: 0; padding: 12px 14px; white-space: pre-wrap; word-break: break-word; font: inherit; font-size: 14px; line-height: 1.75; max-height: 300px; overflow: auto; }
+  .draft.bad pre { color: var(--red); }
+  .q { background: #fbfbfa; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin: 10px 0 0; }
+  .q-t { font-weight: 600; margin-bottom: 6px; }
+  .opts { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+  .opt { border-radius: 999px; padding: 4px 14px; }
+  .opt.sel { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .q-row { display: flex; gap: 8px; align-items: flex-start; }
+  .q-row textarea { min-height: 38px; }
+  .ans { margin-top: 8px; font-size: 13px; color: var(--blue); }
+  .reply { margin-top: 6px; padding: 8px 10px; background: var(--green-bg); border-radius: 8px; font-size: 14px; }
+  .reply::before { content: "Claude："; font-weight: 700; color: var(--green); }
+  .diagram { margin: 8px 0 4px; overflow-x: auto; }
+  .diagram svg { max-width: 100%; height: auto; }
+  svg text { font-family: "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", system-ui, sans-serif; }
+  .ov-node { cursor: pointer; }
+  .ov-node:hover rect { stroke: var(--ink); }
+  .kbd { font-size: 11.5px; color: var(--sub); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; }
+  .err { color: var(--red); }
+  /* 更新を光らせる */
+  @keyframes flash { 0%, 30% { background-color: var(--flash); } 100% { background-color: transparent; } }
+  @keyframes flashg { 0%, 30% { background-color: var(--flash); } 100% { background-color: var(--green-bg); } }
+  .fresh { animation: flash 3s ease-out; }
+  .reply.fresh { animation: flashg 3s ease-out; }
+  .toast { position: fixed; bottom: 18px; right: 18px; max-width: 520px; background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 10px; opacity: 0; transition: opacity .25s; pointer-events: none; font-size: 14px; }
+  .toast.show { opacity: .95; }
+  .toast b { color: #8fe3b0; }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1><b>●</b> <span id="title">今日のリーダー</span></h1>
+    <span id="counts"></span>
+    <span class="spacer"></span>
+    <span id="sched" class="muted sched"></span>
+    <span id="gen" class="muted"></span>
+  </div>
+  <div class="ticker">
+    <span class="who">Claude</span><span class="txt" id="tick">—</span>
+    <form id="gform"><input id="gmsg" type="text" placeholder="Claude に一言（どのタブからでも）" autocomplete="off"><button class="primary" type="submit">送る</button></form>
+  </div>
+  <nav class="tabs" id="tabs"></nav>
+</header>
+<main><div id="banners"></div><div class="view" id="view"></div></main>
+<div class="toast" id="toast"></div>
+<script>
+const ui = { sel: {}, note: {}, open: {}, showDone: false };
+let lastJson = "", state = null, prevLogN = null;
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const md = s => esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/`([^`]+)`/g, "<code>$1</code>");
+let toastTimer;
+function toast(html, ms = 1800) { const el = $("#toast"); el.innerHTML = html; el.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("show"), ms); }
+async function post(path, body) {
+  return fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+}
+
+function itemState(it) {
+  if (it.status === "done" || it.status === "running") return it.status;
+  const qs = it.questions || [];
+  if (qs.length && qs.every(q => q.answer)) return "answered";
+  return "decide";
+}
+const LABEL = { decide: "判断待ち", answered: "回答済み", running: "進行中", done: "済み" };
+
+// ---------- 既読（Claude の更新を見たか。localStorage に作業フォルダーごとに覚える） ----------
+let seen = null, seenKey = null;
+function hash(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return h; }
+// 利用者自身の答えは入れない（Claude の側の変化だけ）
+function sig(it) { return hash(JSON.stringify([it.status, it.title, it.summary, (it.questions || []).map(q => [q.text, q.reply || ""]), (it.drafts || []).map(d => d.text)])); }
+function saveSeen() { try { localStorage.setItem(seenKey, JSON.stringify(seen)); } catch (e) { /* 覚えられなくても動く */ } }
+function loadSeen(j) {
+  seenKey = "leader-seen-v1:" + (j.session || "");
+  try { seen = JSON.parse(localStorage.getItem(seenKey) || "null"); } catch (e) { seen = null; }
+  // 初めて開いたときは、今ある内容を全部「見た」ことにする
+  if (!seen || typeof seen.items !== "object") { seen = { items: Object.fromEntries(j.items.map(it => [it.id, sig(it)])), logN: (j.log || []).length }; saveSeen(); }
+}
+function isUpdated(it) { return !!seen && seen.items[it.id] !== sig(it); }
+function markSeen(it) { if (seen && seen.items[it.id] !== sig(it)) { seen.items[it.id] = sig(it); saveSeen(); } }
+function unreadLog() { return seen ? Math.max(0, (state.log || []).length - seen.logN) : 0; }
+
+// ---------- 場所（#タブ/項目） ----------
+function route() {
+  const [tab, item] = location.hash.slice(1).split("/").map(x => decodeURIComponent(x || ""));
+  return { tab: tab || "overview", item: item || null };
+}
+function go(tab, item) { location.hash = item ? `${encodeURIComponent(tab)}/${encodeURIComponent(item)}` : encodeURIComponent(tab); }
+window.addEventListener("hashchange", () => state && render());
+
+function itemsOf(pj) { return state.items.filter(i => i.project === pj); }
+function grouped(list) {
+  const groups = [];
+  for (const it of list) {
+    let g = groups.find(x => x.name === it.group);
+    if (!g) groups.push(g = { name: it.group, items: [] });
+    g.items.push(it);
+  }
+  return groups;
+}
+const isDone = it => itemState(it) === "done";
+function activeOrder(pj) { return grouped(itemsOf(pj).filter(i => !isDone(i))).flatMap(g => g.items); }
+function doneOrder(pj) { return itemsOf(pj).filter(isDone); }
+// j/k の順番。「済み」を畳んでいる間は済みを飛ばす
+function navOrder(pj) { const a = activeOrder(pj); return ui.open["done-" + pj] || !a.length ? a.concat(doneOrder(pj)) : a; }
+// 開いている項目（指定が無ければ最初の判断待ち、無ければ残りの先頭、それも無ければ済みの先頭）
+function currentOf(pj, itemId) {
+  const act = activeOrder(pj);
+  return itemsOf(pj).find(i => i.id === itemId) || act.find(i => itemState(i) === "decide") || act[0] || doneOrder(pj)[0];
+}
+
+// ---------- 全体の図 ----------
+function svgOverview() {
+  const PER = 4, lanes = state.projects.map(p => {
+    const all = activeOrder(p.id).concat(doneOrder(p.id));
+    return { p, items: ui.showDone ? all : all.filter(i => !isDone(i)), doneN: doneOrder(p.id).length };
+  }).filter(l => l.items.length || l.doneN);
+  if (!lanes.length) return "";
+  lanes.forEach(l => l.rows = Math.max(1, Math.ceil(l.items.length / PER)));
+  const NW = 230, GAP = 18, rowH = 52, top = 30, laneGap = 14;
+  const W = 330 + PER * (NW + GAP), H = top + lanes.reduce((a, l) => a + l.rows * rowH + laneGap, 0);
+  const color = { decide: ["#fff6e5", "#f5a524"], answered: ["#eaf2ff", "#2b6fd6"], running: ["#f0f0f0", "#999"], done: ["#e8f5ee", "#2e8b57"] };
+  let s = `<svg width="100%" viewBox="0 0 ${W} ${H}" role="img" aria-label="全体の図">`;
+  s += `<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="#bbb"/></marker></defs>`;
+  s += `<text x="180" y="16" font-size="12" fill="#5a5a5a">プロジェクト</text><text x="330" y="16" font-size="12" fill="#5a5a5a">タスク（色＝状態・押すと開く）</text>`;
+  const lx = 30, ly = top + (H - top) / 2;
+  s += `<circle cx="${lx + 40}" cy="${ly}" r="30" fill="#151515"/><text x="${lx + 40}" y="${ly + 5}" font-size="13" fill="#fff" text-anchor="middle">Claude</text>`;
+  let yAcc = top;
+  lanes.forEach(l => {
+    const y = yAcc + rowH / 2, y0 = yAcc; yAcc += l.rows * rowH + laneGap;
+    const lbl = l.p.label.length > 9 ? l.p.label.slice(0, 8) + "…" : l.p.label;
+    s += `<path d="M${lx + 72},${ly} C 140,${ly} 140,${y} 176,${y}" fill="none" stroke="#bbb" stroke-width="1.5" marker-end="url(#ar)"/>`;
+    s += `<g class="ov-node" data-tab="${esc(l.p.id)}"><rect x="180" y="${y - 17}" width="124" height="34" rx="8" fill="#fff" stroke="#151515"/><text x="242" y="${y + 5}" font-size="13" text-anchor="middle">${esc(lbl)}</text></g>`;
+    if (!l.items.length) s += `<text x="330" y="${y + 5}" font-size="12.5" fill="#2e8b57">すべて済み（${l.doneN}件）</text>`;
+    l.items.forEach((it, k) => {
+      const x = 330 + (k % PER) * (NW + GAP), yy = y0 + Math.floor(k / PER) * rowH + rowH / 2;
+      const st = itemState(it), [bg, bd] = color[st], up = isUpdated(it);
+      const max = up ? 12 : 15, short = it.title.length > max ? it.title.slice(0, max - 1) + "…" : it.title;  // 「更新」の印と重ねない
+      s += `<g class="ov-node" data-tab="${esc(l.p.id)}" data-item="${esc(it.id)}"><rect x="${x}" y="${yy - 20}" width="${NW}" height="40" rx="8" fill="${bg}" stroke="${up ? "#2b6fd6" : bd}" stroke-width="${up ? 2.5 : 1.5}"/>`;
+      s += `<text x="${x + 10}" y="${yy - 3}" font-size="13">${esc(short)}</text>`;
+      s += `<text x="${x + 10}" y="${yy + 13}" font-size="11" fill="${bd}">${LABEL[st]}${it.urgent ? "・急ぎ" : ""}</text>`;
+      if (up) s += `<rect x="${x + NW - 40}" y="${yy - 14}" width="32" height="16" rx="4" fill="#2b6fd6"/><text x="${x + NW - 24}" y="${yy - 2}" font-size="10.5" fill="#fff" text-anchor="middle" font-weight="700">更新</text>`;
+      s += `</g>`;
+    });
+  });
+  return s + "</svg>";
+}
+
+// ---------- 描画 ----------
+function unreadTotal() { return state.items.filter(isUpdated).length + unreadLog(); }
+function setTitle() { const u = unreadTotal(); document.title = (u ? `(${u}) ` : "") + state.title; }
+
+function render() {
+  const s = state, r = route();
+  $("#title").textContent = s.title;
+  $("#sched").textContent = (s.schedule || []).map(x => `${x.time || ""}${x.end ? "–" + x.end : ""} ${x.title || ""}`.trim()).join(" ／ ");
+  const sts = s.items.map(itemState), n = k => sts.filter(x => x === k).length;
+  $("#counts").innerHTML = `<span class="chip amber">判断待ち ${n("decide")}</span><span class="chip blue">回答済み ${n("answered")}</span>` +
+    (n("running") ? `<span class="chip">進行中 ${n("running")}</span>` : "") + `<span class="chip green">済み ${n("done")}</span>`;
+  const last = (s.log || [])[(s.log || []).length - 1];
+  $("#tick").innerHTML = last ? `<span class="muted">${esc(last.ts)}</span>　${md(last.text)}` : "—";
+  const bn = [];
+  if (s.errors?.length) bn.push(`<div class="banner err">${s.errors.map(e => `<div>${esc(e)}</div>`).join("")}</div>`);
+  if (s.warnings?.length) bn.push(`<div class="banner warn">${s.warnings.map(e => `<div>${esc(e)}</div>`).join("")}</div>`);
+  $("#banners").innerHTML = bn.join("");
+  const pend = pj => itemsOf(pj).filter(i => itemState(i) === "decide").length;
+  const upd = pj => itemsOf(pj).filter(isUpdated).length;
+  const tabs = [{ id: "overview", label: "全体" }, ...s.projects];
+  $("#tabs").innerHTML = tabs.map(t => {
+    let b = "";
+    if (t.id === "overview") { const u = unreadLog(); if (u) b = `<span class="newdot">新着 ${u}</span>`; }
+    else { b = `<span class="badge ${pend(t.id) ? "" : "zero"}">${pend(t.id)}</span>`; if (upd(t.id)) b += `<span class="newdot">更新 ${upd(t.id)}</span>`; }
+    return `<button class="tab ${r.tab === t.id ? "on" : ""}" data-tab="${esc(t.id)}">${esc(t.label)}${b}</button>`;
+  }).join("");
+  document.querySelectorAll(".tab").forEach(b => b.onclick = () => go(b.dataset.tab));
+  if (r.tab === "overview" || !s.projects.find(p => p.id === r.tab)) renderOverview(); else renderProject(r.tab, r.item);
+  setTitle();
+}
+
+// 光らせた後に印を消すための描き直し（入力中は描き直さない）
+function rerenderLater() {
+  setTimeout(() => {
+    if (!state || typing()) return;
+    const body = $(".d-b"), y = body ? body.scrollTop : 0;
+    render();
+    const nb = $(".d-b"); if (nb) nb.scrollTop = y;
+  }, 3200);
+}
+
+function renderOverview() {
+  const s = state, u = unreadLog(), logs = (s.log || []).map((l, i) => ({ ...l, i }));
+  const newest = new Set(logs.slice(logs.length - u).map(l => l.i));
+  const log = logs.sort((a, b) => String(b.ts).localeCompare(String(a.ts)) || b.i - a.i);
+  const fig = s.items.length ? `<div class="diagram">${svgOverview()}</div>`
+    : `<div class="empty big">まだ項目がありません。作業フォルダーの <code>items.json</code> に項目を書くと、ここに出ます。</div>`;
+  $("#view").innerHTML = `<div class="ov">
+    <div class="panel wide"><h2>${md(s.headline)}<span class="spacer"></span><label class="tog"><input type="checkbox" id="showdone" ${ui.showDone ? "checked" : ""}>済みも図に出す</label></h2>${fig}</div>
+    <div class="panel scroll"><h2>Claude からの返事・動いたこと</h2><ul class="log">${log.length ? log.map(l => `<li class="${u && newest.has(l.i) ? "fresh" : ""}"><span class="ts">${esc(l.ts)}</span>${md(l.text)}</li>`).join("") : `<li class="muted">まだありません</li>`}</ul></div>
+    <div class="panel scroll"><h2>送ったメモ</h2>${(s.messages || []).length ? `<ul class="log">${s.messages.slice().reverse().map(m => `<li><span class="ts">${esc(m.ts)}</span>${esc(m.note)}</li>`).join("")}</ul>` : `<p class="muted">一言はヘッダーの欄から、どのタブからでも送れます</p>`}</div>
+    </div>`;
+  document.querySelectorAll(".ov-node").forEach(g => g.onclick = () => {
+    const it = g.dataset.item && state.items.find(i => i.id === g.dataset.item);
+    if (it && isDone(it)) ui.open["done-" + it.project] = true;
+    go(g.dataset.tab, g.dataset.item || null);
+  });
+  $("#showdone").onchange = e => { ui.showDone = e.target.checked; renderOverview(); };
+  if (u && seen) { seen.logN = (s.log || []).length; saveSeen(); rerenderLater(); }
+}
+
+function rowHtml(it, cur) {
+  const st = itemState(it), up = isUpdated(it);
+  return `<div class="row ${it.id === cur?.id ? "on" : ""} ${st === "done" ? "donerow" : ""}" data-item="${esc(it.id)}"><span class="dot ${st}"></span><div><div class="t">${esc(it.title)}</div><div class="s">${LABEL[st]}${it.urgent ? "・急ぎ" : ""}${up ? '<span class="upd">更新</span>' : ""}</div></div></div>`;
+}
+
+function renderProject(pj, itemId) {
+  const act = activeOrder(pj), dn = doneOrder(pj), cur = currentOf(pj, itemId);
+  if (cur && isDone(cur)) ui.open["done-" + pj] = true;
+  let list = act.length ? grouped(act).map(g => (g.name ? `<div class="grp">${esc(g.name)}</div>` : "") + g.items.map(it => rowHtml(it, cur)).join("")).join("")
+    : `<div class="empty">残っている項目はありません</div>`;
+  if (dn.length) list += `<details class="donebox" data-key="done-${esc(pj)}" ${ui.open["done-" + pj] ? "open" : ""}><summary>済み（${dn.length}）</summary>${dn.map(it => rowHtml(it, cur)).join("")}</details>`;
+  const order = navOrder(pj), idx = cur ? order.indexOf(cur) : -1;
+  const wasUpdated = cur && isUpdated(cur);
+  $("#view").innerHTML = `<div class="pj"><div class="list">${list}</div><div class="detail">${cur ? detailHtml(cur, wasUpdated) : `<div class="empty">項目がありません</div>`}
+    <div class="d-f"><button id="prev" ${idx <= 0 ? "disabled" : ""}>← 前</button><button id="next" ${idx < 0 || idx >= order.length - 1 ? "disabled" : ""}>次 →</button>
+    <span class="muted">${idx + 1} / ${order.length}</span><span class="spacer"></span><span class="kbd">j</span><span class="kbd">k</span><span class="muted">で移動・</span><span class="kbd">←</span><span class="kbd">→</span><span class="muted">でタブ</span></div></div></div>`;
+  document.querySelectorAll(".row").forEach(rw => rw.onclick = () => go(pj, rw.dataset.item));
+  const db = $("details.donebox"); if (db) db.ontoggle = () => { ui.open["done-" + pj] = db.open; };
+  $("#prev").onclick = () => idx > 0 && go(pj, order[idx - 1].id);
+  $("#next").onclick = () => idx < order.length - 1 && go(pj, order[idx + 1].id);
+  if (cur) {
+    bindDetail(pj, cur);
+    if (wasUpdated) { markSeen(cur); rerenderLater(); }
+  }
+}
+
+function detailHtml(it, fresh) {
+  const st = itemState(it), f = fresh ? "fresh" : "";
+  const badge = { decide: '<span class="chip amber">判断待ち</span>', answered: '<span class="chip blue">回答済み</span>', running: '<span class="chip">進行中</span>', done: '<span class="chip green">済み</span>' }[st];
+  let h = `<div class="d-h ${f}"><h3>${esc(it.title)}</h3>${it.urgent ? '<span class="urgent">急ぎ</span>' : ""}${badge}</div><div class="d-b">`;
+  if (it.summary?.length) h += `<ul>${it.summary.map(x => `<li>${md(x)}</li>`).join("")}</ul>`;
+  if (it.details?.length) h += `<details class="more" data-key="d-${esc(it.id)}" ${ui.open["d-" + it.id] ? "open" : ""}><summary>くわしく</summary><ul>${it.details.map(x => `<li>${md(x)}</li>`).join("")}</ul></details>`;
+  if (it.svg) h += `<div class="diagram">${it.svg}</div>`;
+  if (it.links?.length) h += `<div class="links">${it.links.map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">${esc(l.label)} ↗</a>`).join("")}</div>`;
+  (it.drafts || []).forEach((d, i) => {
+    const key = `t-${i}`;
+    h += `<div class="draft ${d.error ? "bad" : ""}"><div class="draft-h"><b>${esc(d.label)}</b><span class="muted">${esc(d.where || "")}</span><span class="spacer"></span>`;
+    if (d.link) h += `<a href="${esc(d.link)}" target="_blank" rel="noopener noreferrer">開く ↗</a>`;
+    h += `<button data-copy="${key}">コピー</button></div><pre id="${key}">${esc(d.text)}</pre></div>`;
+  });
+  (it.questions || []).forEach(q => {
+    const sel = ui.sel[q.id] ?? null;
+    h += `<div class="q" data-qid="${esc(q.id)}"><div class="q-t">${md(q.text)}</div>`;
+    if (st !== "done") {  // 済みの項目では選択肢と入力欄を出さない
+      if (q.options.length) h += `<div class="opts">${q.options.map(o => `<button class="opt ${sel === o ? "sel" : ""}" data-opt="${esc(o)}">${esc(o)}</button>`).join("")}</div>`;
+      h += `<div class="q-row"><textarea data-note placeholder="メモ（任意）">${esc(ui.note[q.id] || "")}</textarea><button class="primary" data-send ${sel || ui.note[q.id] ? "" : "disabled"}>送る</button></div>`;
+    }
+    if (q.answer) h += `<div class="ans">送った（${esc(q.answer.ts)}）：${esc(q.answer.choice || "")}${q.answer.choice && q.answer.note ? "／" : ""}${esc(q.answer.note || "")}</div>`;
+    if (q.reply) h += `<div class="reply ${f}">${md(q.reply)}</div>`;
+    h += `</div>`;
+  });
+  return h + `</div>`;
+}
+
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch (e) {
+    const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select();
+    const ok = document.execCommand("copy"); ta.remove(); return ok;
+  }
+}
+
+function bindDetail(pj, cur) {
+  document.querySelectorAll("details.more[data-key]").forEach(d => d.ontoggle = () => ui.open[d.dataset.key] = d.open);
+  document.querySelectorAll("[data-copy]").forEach(b => b.onclick = async () => {
+    toast(await copyText(document.getElementById(b.dataset.copy).textContent) ? "コピーした" : "コピーできなかった");
+  });
+  document.querySelectorAll(".q").forEach(qel => {
+    const qid = qel.dataset.qid, send = $("[data-send]", qel), ta = $("[data-note]", qel);
+    if (!send) return;
+    const sync = () => send.disabled = !(ui.sel[qid] || (ui.note[qid] || "").trim());
+    qel.querySelectorAll(".opt").forEach(b => b.onclick = () => {
+      ui.sel[qid] = ui.sel[qid] === b.dataset.opt ? null : b.dataset.opt;
+      qel.querySelectorAll(".opt").forEach(x => x.classList.toggle("sel", x.dataset.opt === ui.sel[qid]));
+      sync();
+    });
+    ta.oninput = () => { ui.note[qid] = ta.value; sync(); };
+    send.onclick = async () => {
+      send.disabled = true;
+      const r = await post("/api/decision", { qid, choice: ui.sel[qid] || "", note: ui.note[qid] || "" });
+      if (!r.ok) { toast("送れなかった"); sync(); return; }
+      ui.sel[qid] = null; ui.note[qid] = ""; ta.blur(); toast("Claude に送った");
+      // この件の問いが全部答えられたら、次の判断待ちへ進む
+      const left = (cur.questions || []).filter(q => q.id !== qid && !q.answer);
+      lastJson = "";
+      if (!left.length) {
+        const act = activeOrder(pj);
+        const nxt = act.slice(act.indexOf(cur) + 1).concat(act).find(i => i.id !== cur.id && itemState(i) === "decide");
+        if (nxt) go(pj, nxt.id);
+      }
+      poll();
+    };
+  });
+}
+
+// どのタブからでも送れる一言。頭に「［タブ / 項目］」を付ける
+$("#gform").onsubmit = async e => {
+  e.preventDefault();
+  const inp = $("#gmsg"), text = inp.value.trim(); if (!text || !state) return;
+  const r = route(), pj = state.projects.find(p => p.id === r.tab);
+  const it = pj ? (state.items.find(i => i.id === r.item) || currentOf(pj.id, null)) : null;
+  const where = pj ? `［${pj.label}${it ? " / " + it.title : ""}］ ` : "";
+  const res = await post("/api/message", { text: where + text, item: it ? it.id : "" });
+  if (res.ok) { inp.value = ""; toast("Claude に送った"); lastJson = ""; poll(); } else toast("送れなかった");
+};
+
+document.addEventListener("keydown", e => {
+  if (!state || e.metaKey || e.ctrlKey || e.altKey || ["TEXTAREA", "INPUT"].includes(document.activeElement?.tagName)) return;
+  const r = route();
+  const tabs = ["overview", ...state.projects.map(p => p.id)], ti = Math.max(0, tabs.indexOf(r.tab));
+  if (e.key === "ArrowRight" || e.key === "l") { e.preventDefault(); go(tabs[(ti + 1) % tabs.length]); return; }
+  if (e.key === "ArrowLeft" || e.key === "h") { e.preventDefault(); go(tabs[(ti - 1 + tabs.length) % tabs.length]); return; }
+  if (r.tab === "overview") return;
+  const order = navOrder(r.tab); if (!order.length) return;
+  const i = Math.max(0, order.indexOf(currentOf(r.tab, r.item)));
+  if (e.key === "j" || e.key === "ArrowDown") { e.preventDefault(); go(r.tab, order[Math.min(order.length - 1, i + 1)].id); }
+  if (e.key === "k" || e.key === "ArrowUp") { e.preventDefault(); go(r.tab, order[Math.max(0, i - 1)].id); }
+});
+
+// 項目の欄に書いている間は描き直さない（ヘッダーの一言の欄は描き直しの外なので数えない）
+function typing() { return !!document.activeElement?.matches?.("#view textarea, #view input[type=text]"); }
+
+async function poll() {
+  try {
+    const r = await fetch("/api/state", { cache: "no-store" });
+    const txt = await r.text(), j = JSON.parse(txt);
+    if (j.error) { $("#view").innerHTML = `<p class="err">サーバーのエラー：${esc(j.error)}</p>`; return; }
+    $("#gen").textContent = "更新 " + j.generated.slice(11);
+    if (!seen) loadSeen(j);
+    // Claude が「動いたこと」を書いたら、トーストと帯で知らせる
+    const ln = (j.log || []).length;
+    if (prevLogN !== null && ln > prevLogN) {
+      toast(`<b>Claude</b>　${md(j.log[ln - 1].text)}`, 5000);
+      const t = $("#tick"); if (t) { t.classList.remove("fresh"); void t.offsetWidth; t.classList.add("fresh"); }
+    }
+    prevLogN = ln;
+    const cmp = txt.replace(/"generated":"[^"]*"/, "");
+    if (cmp !== lastJson && !typing()) {
+      lastJson = cmp; state = j;
+      const body = $(".d-b"), y = body ? body.scrollTop : 0;
+      render();
+      const nb = $(".d-b"); if (nb) nb.scrollTop = y;
+    }
+  } catch (e) { $("#gen").innerHTML = `<span class="err">サーバーにつながらない</span>`; }
+}
+poll(); setInterval(poll, 4000);
+</script>
+</body>
+</html>

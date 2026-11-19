@@ -1,0 +1,142 @@
+{
+  "title": "今日のリーダー（例）",
+  "headline": "3本のエージェントが下書きを用意しました。判断が要る件数はタブの数字のとおりです。答えると Claude に届きます。",
+  "schedule": [
+    {"time": "10:00", "end": "11:00", "title": "歯医者"},
+    {"time": "19:00", "title": "友人と夕食"}
+  ],
+  "projects": [
+    {"id": "blog", "label": "ブログ"},
+    {"id": "trip", "label": "旅行"},
+    {"id": "home", "label": "家のこと"}
+  ],
+  "items": [
+    {
+      "id": "blog-publish",
+      "project": "blog",
+      "group": "今週の記事",
+      "title": "記事「週末に作った本棚」を公開する",
+      "status": "decide",
+      "urgent": true,
+      "summary": [
+        "本文は約 260 字。写真6枚のうち、3枚目だけ暗い",
+        "告知の文は約 80 字。ハッシュタグは1つ",
+        "**公開のボタンを押すのはあなた**。Claude は下書きまで"
+      ],
+      "details": [
+        "過去の記事では、土曜の朝に公開したものがいちばん読まれている",
+        "材料費の合計（6,480 円）はレシートと突き合わせた"
+      ],
+      "links": [
+        {"label": "ブログの管理画面", "url": "https://example.com/blog/admin"}
+      ],
+      "drafts": [
+        {
+          "label": "本文",
+          "where": "ブログの編集画面に貼る",
+          "link": "https://example.com/blog/admin/new",
+          "src": {"file": "notes/blog.md", "heading": "## 本文の下書き", "whole": true}
+        },
+        {
+          "label": "告知の文",
+          "where": "SNS に、公開の後で",
+          "src": {"file": "notes/blog.md", "heading": "## 告知の文"}
+        }
+      ],
+      "questions": [
+        {"id": "blog-publish-ok", "text": "この本文で公開する？", "options": ["公開してよい", "直してから（直す所をメモに）", "保留"]},
+        {"id": "blog-announce-when", "text": "告知はいつ出す？", "options": ["公開と同時", "翌朝 8 時", "出さない"]}
+      ]
+    },
+    {
+      "id": "blog-next",
+      "project": "blog",
+      "group": "次の記事",
+      "title": "次の記事の題材を決める",
+      "status": "decide",
+      "summary": [
+        "候補は3つ。メモの多い順に並べた",
+        "どれも写真は撮ってある"
+      ],
+      "questions": [
+        {"id": "blog-next-topic", "text": "どれにする？", "options": ["ベランダの家庭菜園", "古いノート PC の再生", "近所のパン屋めぐり"]}
+      ]
+    },
+    {
+      "id": "trip-inn",
+      "project": "trip",
+      "group": "12 月の温泉旅行",
+      "title": "宿を決めて、問い合わせを送る",
+      "status": "decide",
+      "urgent": true,
+      "summary": [
+        "候補を2つに絞った。A は駅から近く安い、B は露天風呂つきの部屋",
+        "A の早割は **11/22 まで**。12/1 からはキャンセル料が掛かる",
+        "問い合わせの文はできた。送るのはあなたの答えの後"
+      ],
+      "details": [
+        "A: 1泊2食・2名で 38,000 円（早割）、駅から徒歩 5 分",
+        "B: 1泊2食・2名で 46,000 円、駅から送迎 15 分",
+        "どちらも 12/13 の空きは宿のサイトで確かめた"
+      ],
+      "svg": "<svg viewBox='0 0 900 180' width='100%' style='max-width:900px' role='img' aria-label='宿を決めるまでの日程'><rect x='60' y='82' width='100' height='16' rx='4' fill='#fff6e5'/><line x1='40' y1='90' x2='880' y2='90' stroke='#ccc' stroke-width='2'/><line x1='60' y1='62' x2='60' y2='80' stroke='#d42a2a' stroke-dasharray='3 3'/><rect x='10' y='38' width='100' height='24' rx='12' fill='#d42a2a'/><text x='60' y='55' font-size='13' fill='#fff' text-anchor='middle'>宿を決める</text><line x1='160' y1='34' x2='160' y2='82' stroke='#f5a524' stroke-dasharray='3 3'/><rect x='95' y='10' width='130' height='24' rx='12' fill='#f5a524'/><text x='160' y='27' font-size='13' fill='#fff' text-anchor='middle'>A の早割の締め</text><line x1='460' y1='62' x2='460' y2='82' stroke='#8a8a8a' stroke-dasharray='3 3'/><rect x='365' y='38' width='190' height='24' rx='12' fill='#8a8a8a'/><text x='460' y='55' font-size='13' fill='#fff' text-anchor='middle'>キャンセル料が掛かり始める</text><line x1='860' y1='62' x2='860' y2='82' stroke='#151515' stroke-dasharray='3 3'/><rect x='820' y='38' width='76' height='24' rx='12' fill='#151515'/><text x='858' y='55' font-size='13' fill='#fff' text-anchor='middle'>出発</text><circle cx='60' cy='90' r='8' fill='#d42a2a'/><circle cx='160' cy='90' r='6' fill='#151515'/><circle cx='460' cy='90' r='6' fill='#151515'/><circle cx='860' cy='90' r='6' fill='#151515'/><text x='60' y='118' font-size='13' text-anchor='middle'>11/19</text><text x='60' y='135' font-size='11' fill='#5a5a5a' text-anchor='middle'>今日</text><text x='160' y='118' font-size='13' text-anchor='middle'>11/22</text><text x='460' y='118' font-size='13' text-anchor='middle'>12/1</text><text x='860' y='118' font-size='13' text-anchor='middle'>12/13</text><text x='10' y='170' font-size='11.5' fill='#5a5a5a'>早割は宿 A だけ。12/1 より前なら、どちらの宿も取り消しは無料</text></svg>",
+      "links": [
+        {"label": "宿 A", "url": "https://example.com/inn-a"},
+        {"label": "宿 B", "url": "https://example.com/inn-b"}
+      ],
+      "drafts": [
+        {
+          "label": "宿への問い合わせ",
+          "where": "宿の問い合わせフォームに貼る",
+          "link": "https://example.com/inn-a/contact",
+          "src": {"file": "notes/trip.md", "heading": "## 問い合わせの文"}
+        }
+      ],
+      "questions": [
+        {"id": "trip-inn-pick", "text": "どちらの宿にする？", "options": ["A（駅から近い・早割）", "B（露天風呂つき）", "もう少し探す"]},
+        {"id": "trip-inn-ask", "text": "問い合わせの文はこれでよい？", "options": ["このまま送る（自分で）", "直す（直す所をメモに）"]}
+      ]
+    },
+    {
+      "id": "trip-train",
+      "project": "trip",
+      "group": "12 月の温泉旅行",
+      "title": "特急の指定席を取る",
+      "status": "running",
+      "summary": [
+        "宿が決まってから取る。エージェントが時刻表を調べている"
+      ]
+    },
+    {
+      "id": "home-budget",
+      "project": "home",
+      "group": "家計",
+      "title": "11 月の家計を確かめる",
+      "status": "decide",
+      "summary": [
+        "食費が先月より 8% 多い。外食が2回多かった",
+        "動画の定額サービスが2つある。片方は先月1回も見ていない"
+      ],
+      "drafts": [
+        {
+          "label": "解約の手順（メモ）",
+          "where": "自分用",
+          "text": "1. サービスのサイトでアカウントの設定を開く\n2. 「プラン」から「解約」を選ぶ\n3. 次の更新日（12/5）までは見られる"
+        }
+      ],
+      "questions": [
+        {"id": "home-subscription", "text": "見ていない方の定額サービスを解約する？", "options": ["解約する（自分で）", "来月まで様子を見る"]}
+      ]
+    },
+    {
+      "id": "home-bulky",
+      "project": "home",
+      "group": "片づけ",
+      "title": "粗大ごみの回収を申し込む",
+      "status": "done",
+      "summary": [
+        "11/26 の回収で申し込んだ。処理券は 400 円を2枚"
+      ]
+    }
+  ]
+}
