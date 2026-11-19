@@ -7,326 +7,304 @@
 <title>今日のリーダー</title>
 <style>
   /*
-   * 色の体系: 色は「誰の番か」を表す。
-   *   山吹（--you）    あなたの番。判断待ち・あなたの答え・あなたの一言。形は ◆
-   *   藍（--claude）   Claude の番。回答済み（Claude が動く）・Claude の動き・更新の印。形は ●
-   *   藍の淡（--run）  進行中（Claude が作業中）。形は欠けた輪
-   *   若竹（--done）   済み。形は ✓
-   *   朱（--urgent）   急ぎ。小さな札にだけ使う
-   * 色だけで区別させない。どこでも形か文字を添える。
+   * 紙とインクの紙面。色は蛍光ペンの黄色1色だけ。
+   *   黄色  利用者の番（判断待ちの題に蛍光ペン、選んだ答え）と、Claude の更新（星）にだけ使う
+   *   墨    本文・罫線・回答済み（Claude の番）
+   *   灰色  済み（打ち消し線）・進行中・補足
+   * 箱で囲まず、罫線と段組みと余白で区切る。見出しはセリフ体（欧文は斜体、和文は明朝で立てる）、
+   * 時刻と数と小見出しは等幅。
    */
   :root {
     color-scheme: light;
-    --page: #f3f4f7; --surface: #ffffff; --surface-2: #f7f8fb; --hover: #eff1f6;
-    --ink: #1d2033; --sub: #5b6072; --muted: #7a7f91; --line: #e3e5ec; --line-2: #cdd0db;
-    --you: #e5a100; --you-ink: #8a5f00; --you-wash: #fdf3d8; --on-you: #2a1d00;
-    --claude: #3f51c8; --claude-ink: #3243b0; --claude-wash: #eceffd; --on-claude: #ffffff;
-    --run: #8f9be3;
-    --done: #4f9f73; --done-ink: #2f7a51; --done-wash: #e8f4ed;
-    --urgent: #d9381e; --urgent-ink: #b42a12; --urgent-wash: #fdebe7;
-    --toast-accent: #aeb8ff;
-    --paper: transparent;
-    --jp: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
-    --fig: "DIN Alternate", "Bahnschrift", "Avenir Next", "Hiragino Sans", system-ui, sans-serif;
-    --r-lg: 14px; --r-md: 10px;
+    --paper: #ffffff; --paper-2: #f3f3f0; --ink: #1a1a1a; --ink-2: #444441; --muted: #6c6c67; --faint: #a3a39d;
+    --hair: #dadad4; --yellow: #f6e11d; --on-yellow: #1a1a1a;
+    --pen-h: 42%; --pen-y: 92%;           /* 蛍光ペンの太さと高さ（文字の下半分に引く） */
+    --sheet: transparent;
+    --serif: "Iowan Old Style", "Baskerville", "Hoefler Text", Georgia, "Hiragino Mincho ProN", "YuMincho", serif;
+    --mono: "SF Mono", Menlo, ui-monospace, monospace;
+    --sans: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+    --star: polygon(50% 0%, 59.1% 10%, 71.7% 5%, 75.6% 17.9%, 89.1% 18.8%, 86.9% 32.2%, 98.7% 38.9%, 91% 50%, 98.7% 61.1%, 86.9% 67.8%, 89.1% 81.2%, 75.6% 82.1%, 71.7% 95%, 59.1% 90%, 50% 100%, 40.9% 90%, 28.3% 95%, 24.4% 82.1%, 10.9% 81.2%, 13.1% 67.8%, 1.3% 61.1%, 9% 50%, 1.3% 38.9%, 13.1% 32.2%, 10.9% 18.8%, 24.4% 17.9%, 28.3% 5%, 40.9% 10%);
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      color-scheme: dark;
-      --page: #0f1220; --surface: #171b2e; --surface-2: #1d2238; --hover: #21273f;
-      --ink: #e8eaf3; --sub: #a9aec2; --muted: #7c8299; --line: #2a3049; --line-2: #3b4264;
-      --you: #dca01a; --you-ink: #f0c050; --you-wash: #2e2814; --on-you: #1d1400;
-      --claude: #6272e2; --claude-ink: #9aa6f5; --claude-wash: #232a52; --on-claude: #ffffff;
-      --run: #9aa4ea;
-      --done: #3e9d6c; --done-ink: #6cc896; --done-wash: #16302a;
-      --urgent: #f0603f; --urgent-ink: #f58a6e; --urgent-wash: #3a1c17;
-      --toast-accent: #3243b0;
-      --paper: #f7f8fb;
+      color-scheme: dark;   /* 黒い紙に生成りの文字 */
+      --paper: #151515; --paper-2: #201f1d; --ink: #ece6d6; --ink-2: #cfc9b9; --muted: #9a9588; --faint: #67645c;
+      --hair: #34322e;
+      --pen-h: .2em; --pen-y: 100%;         /* 暗い紙では文字の下に太い線として引く */
+      --sheet: #f3f3f0;
     }
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; }
-  body { margin: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--page); color: var(--ink);
-         font: 15px/1.7 var(--jp); -webkit-font-smoothing: antialiased; }
-  .wrap { width: 100%; max-width: 1360px; margin: 0 auto; padding: 0 24px; }
+  body { margin: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--paper); color: var(--ink);
+         font: 14.5px/1.7 var(--sans); -webkit-font-smoothing: antialiased; font-synthesis: none; }
+  .wrap { width: 100%; max-width: 1360px; margin: 0 auto; padding: 0 28px; }
   .spacer { flex: 1; }
-  .muted { color: var(--sub); font-size: 13px; }
-  a { color: var(--claude-ink); text-underline-offset: 3px; }
-  :focus-visible { outline: 2px solid var(--claude); outline-offset: 2px; }
-  code { background: var(--surface-2); border: 1px solid var(--line); padding: 0 5px; border-radius: 4px; font-size: .9em; }
+  .muted { color: var(--muted); font-size: 13px; }
+  a { color: inherit; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+  a:hover { text-decoration-thickness: 2px; }
+  :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  code { font: .88em var(--mono); background: var(--paper-2); padding: 0 4px; }
 
-  /* ---------- 状態の形（色と形をいつも一緒に使う） ---------- */
-  .g { display: inline-block; flex-shrink: 0; width: 12px; height: 12px; position: relative; vertical-align: -1px; }
-  .g::before, .g::after { content: ""; position: absolute; }
-  .g.decide::before { inset: 2px; background: var(--you); transform: rotate(45deg); border-radius: 1.5px; }
-  .g.answered::before { inset: 1px; border-radius: 50%; background: var(--claude); }
-  .g.running::before { inset: 1px; border-radius: 50%; border: 2.5px solid var(--run); border-top-color: transparent; transform: rotate(45deg); }
-  .g.done::before { inset: 0; border-radius: 50%; background: var(--done); }
-  .g.done::after { left: 4.3px; top: 2.4px; width: 3.4px; height: 6.2px; border: solid #fff; border-width: 0 1.8px 1.8px 0; transform: rotate(45deg); }
-  .g.idle::before { inset: 2px; border-radius: 50%; border: 2px solid var(--muted); }
-  .tag { display: inline-block; font-size: 11px; font-weight: 700; border-radius: 4px; padding: 0 6px; line-height: 17px; white-space: nowrap; }
-  .tag.urg { color: var(--urgent-ink); background: var(--urgent-wash); }
-  .upd { display: inline-block; font-size: 11px; font-weight: 700; color: var(--on-claude); background: var(--claude); border-radius: 4px; padding: 0 6px; line-height: 17px; white-space: nowrap; }
+  /* 蛍光ペン（利用者の番）と、引く動き（更新を知らせる） */
+  .hl { background: linear-gradient(var(--yellow), var(--yellow)) 0 var(--pen-y) / 100% var(--pen-h) no-repeat; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+  @keyframes pen { from { background-size: 0% var(--pen-h); } to { background-size: 100% var(--pen-h); } }
+  .fresh .pen, .pen.fresh { background: linear-gradient(var(--yellow), var(--yellow)) 0 var(--pen-y) / 100% var(--pen-h) no-repeat;
+                            -webkit-box-decoration-break: clone; box-decoration-break: clone; animation: pen .7s cubic-bezier(.3, .7, .3, 1) both; }
+  .star { display: inline-block; flex: none; width: 11px; height: 11px; background: var(--yellow); clip-path: var(--star); vertical-align: -1px; }
+  .upd { font: 600 11px/1.4 var(--mono); color: var(--ink); white-space: nowrap; }
+  .urg { font-weight: 700; color: var(--ink); white-space: nowrap; }
+  .st { font: 11px/1.4 var(--mono); letter-spacing: .04em; color: var(--muted); white-space: nowrap; }
+  .st-decide { color: var(--ink); font-weight: 600; }
+  .st-answered { color: var(--ink-2); }
 
-  /* ---------- ヘッダー ---------- */
-  header.top { flex-shrink: 0; background: var(--surface); border-bottom: 1px solid var(--line); }
-  .bar { display: flex; align-items: center; gap: 20px; padding-top: 12px; min-width: 0; }
-  .brand { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 16px; font-weight: 700; white-space: nowrap; letter-spacing: .02em; }
-  .mark { width: 18px; height: 18px; border-radius: 50%; background: linear-gradient(90deg, var(--you) 50%, var(--claude) 50%); box-shadow: 0 0 0 3px var(--surface), 0 0 0 4px var(--line); }
-  .counts { display: flex; gap: 14px; font-size: 13px; color: var(--sub); white-space: nowrap; }
-  .cnt { display: inline-flex; align-items: center; gap: 6px; }
-  .cnt b { font: 700 16px/1 var(--fig); color: var(--ink); }
-  .cnt.zero b { color: var(--muted); font-weight: 400; }
-  .sched { display: flex; gap: 6px; margin: 0; padding: 0; list-style: none; min-width: 0; overflow: hidden; }
-  .sched li { flex-shrink: 1; min-width: 0; max-width: 240px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12.5px; color: var(--sub);
-              padding: 2px 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); }
-  .sched li b { font: 700 12.5px var(--fig); color: var(--ink); margin-right: 6px; }
-  .sched li.past { opacity: .55; }
-  .sched li.now { background: var(--ink); border-color: var(--ink); color: var(--surface); }
-  .sched li.now b { color: var(--surface); }
-  .gen { font: 12.5px var(--fig); color: var(--muted); white-space: nowrap; }
-  .ticker { display: flex; align-items: center; gap: 12px; margin-top: 9px; }
-  .who { display: inline-flex; align-items: center; gap: 8px; color: var(--claude-ink); font-weight: 700; font-size: 13.5px; white-space: nowrap; }
-  .live { width: 9px; height: 9px; border-radius: 50%; background: var(--claude); box-shadow: 0 0 0 3px var(--claude-wash); }
-  .live.ping { animation: ping 1s ease-out 3; }
-  .ticker .txt { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px; padding: 4px 12px; border-radius: 8px; background: var(--surface-2); }
-  .ticker .txt .ts { font: 13px var(--fig); color: var(--muted); margin-right: 10px; }
-  .say { display: flex; gap: 6px; width: min(460px, 40%); flex-shrink: 0; }
-  .say input { flex: 1; min-width: 0; font: inherit; font-size: 14px; padding: 4px 12px; border: 1px solid var(--line-2); border-radius: 8px; background: var(--surface); color: var(--ink); }
-  .say input:focus { outline: none; border-color: var(--claude); box-shadow: 0 0 0 3px var(--claude-wash); }
-  .tabs { display: flex; gap: 2px; margin-top: 6px; overflow-x: auto; scrollbar-width: none; }
-  .tab { appearance: none; border: 0; background: none; font: inherit; font-size: 14.5px; color: var(--sub); cursor: pointer; white-space: nowrap;
-         display: flex; align-items: center; gap: 8px; padding: 8px 14px 11px; position: relative; border-radius: 8px 8px 0 0; }
-  .tab:hover { color: var(--ink); background: var(--hover); }
+  /* ---------- 題字（ヘッダー） ---------- */
+  header.top { flex-shrink: 0; }
+  .mast { display: flex; align-items: baseline; gap: 22px; padding-top: 14px; padding-bottom: 8px; border-bottom: 2px solid var(--ink); min-width: 0; }
+  .brand { display: flex; align-items: center; gap: 10px; margin: 0; font: italic 400 27px/1.1 var(--serif); letter-spacing: .01em; white-space: nowrap; }
+  .brand .star { width: 25px; height: 25px; transform: rotate(-8deg); }
+  .sched { display: flex; gap: 18px; margin: 0; padding: 0; list-style: none; min-width: 0; overflow: hidden; font-size: 12.5px; color: var(--muted); }
+  .sched li { flex-shrink: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sched li b { font: 500 12px var(--mono); color: var(--ink); margin-right: 6px; }
+  .sched li.past { color: var(--faint); }
+  .sched li.past b { color: var(--faint); }
+  .sched li.now { color: var(--ink); font-weight: 600; }
+  .dateline { display: flex; gap: 14px; font: 12px var(--mono); letter-spacing: .06em; color: var(--muted); white-space: nowrap; }
+  .dateline #date { color: var(--ink); }
+  .ticker { display: flex; align-items: center; gap: 14px; padding: 7px 0; border-bottom: 1px solid var(--hair); min-width: 0; }
+  .ticker .who { font: italic 16px var(--serif); white-space: nowrap; }
+  .ticker .txt { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13.5px; }
+  .ticker .txt .ts, .feed .ts { font: 12px var(--mono); color: var(--muted); margin-right: 10px; }
+  .say { display: flex; gap: 8px; width: min(440px, 38%); flex-shrink: 0; align-items: center; }
+  .say input { flex: 1; min-width: 0; font: 13.5px var(--sans); color: var(--ink); background: transparent; border: 0; border-bottom: 1px solid var(--ink); padding: 4px 2px; border-radius: 0; }
+  .say input::placeholder { color: var(--faint); }
+  .say input:focus { outline: none; border-bottom-width: 2px; padding-bottom: 3px; }
+  .tabs-row { display: flex; align-items: flex-end; gap: 16px; border-bottom: 1px solid var(--ink); }
+  .tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; flex: 1; min-width: 0; }
+  .tab { appearance: none; border: 0; background: none; color: var(--muted); font: 14.5px var(--sans); cursor: pointer; white-space: nowrap; border-radius: 0;
+         display: flex; align-items: baseline; gap: 7px; padding: 9px 12px; position: relative; }
+  .tab:hover:not(:disabled) { color: var(--ink); background: none; }
   .tab.on { color: var(--ink); font-weight: 700; }
-  .tab.on::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: 0; height: 3px; border-radius: 3px 3px 0 0; background: var(--claude); }
-  .badge { min-width: 22px; height: 20px; padding: 0 7px; border-radius: 6px; background: var(--you); color: var(--on-you); font: 700 13px/20px var(--fig); text-align: center; }
-  .badge.zero { background: transparent; color: var(--muted); font-weight: 400; box-shadow: inset 0 0 0 1px var(--line-2); }
-  .newdot { font-size: 11.5px; font-weight: 700; color: var(--on-claude); background: var(--claude); border-radius: 999px; padding: 0 8px; line-height: 19px; }
+  .tab.on::after { content: ""; position: absolute; left: 8px; right: 8px; bottom: -1px; height: 3px; background: var(--yellow); }
+  .badge { font: 600 12.5px var(--mono); color: var(--ink); }
+  .badge.zero { color: var(--faint); font-weight: 400; }
+  .newdot { font: 600 11.5px var(--mono); color: var(--ink); }
+  .counts { display: flex; gap: 16px; padding-bottom: 10px; font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .counts b { font: 500 13px var(--mono); color: var(--ink); margin-left: 5px; }
+  .counts .zero b { color: var(--faint); font-weight: 400; }
+  .counts .pending { color: var(--ink); }
+  .counts .pending i { font: italic 14px var(--serif); margin-right: 4px; }
+  .rt { font: 11px var(--mono); letter-spacing: .04em; color: var(--muted); margin-left: 10px; white-space: nowrap; }
+  .rt.wait { color: var(--ink); font-weight: 600; }
+  .lp { font-size: 11.5px; font-weight: 600; color: var(--muted); margin-right: 8px; white-space: nowrap; }
 
-  main { flex: 1; min-height: 0; width: 100%; max-width: 1360px; margin: 0 auto; padding: 16px 24px 18px; display: flex; flex-direction: column; gap: 10px; }
+  main { flex: 1; min-height: 0; width: 100%; max-width: 1360px; margin: 0 auto; padding: 18px 28px 16px; display: flex; flex-direction: column; gap: 10px; }
   .view { flex: 1; min-height: 0; }
-  .banner { border-radius: var(--r-md); padding: 8px 14px; font-size: 13.5px; }
-  .banner.err { background: var(--urgent-wash); color: var(--urgent-ink); }
-  .banner.warn { background: var(--you-wash); color: var(--you-ink); }
-  .banner div + div { margin-top: 2px; }
-  .err { color: var(--urgent-ink); }
+  .banner { padding: 6px 0; font-size: 13.5px; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--ink); }
+  .banner b { font: 600 11px var(--mono); letter-spacing: .06em; margin-right: 10px; }
+  .err { color: var(--ink); font-weight: 700; }
 
-  button { font: inherit; cursor: pointer; border-radius: 8px; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink); padding: 4px 12px; }
-  button:hover:not(:disabled) { background: var(--hover); }
-  button:disabled { opacity: .4; cursor: default; }
-  button.primary { white-space: nowrap; min-width: 4.5em; background: var(--claude); color: var(--on-claude); border-color: var(--claude); font-weight: 700; }
-  button.primary:hover:not(:disabled) { background: var(--claude); filter: brightness(1.1); }
-  textarea { width: 100%; min-height: 60px; font: inherit; font-size: 14px; padding: 7px 10px; border: 1px solid var(--line-2); border-radius: 8px; resize: vertical; background: var(--surface); color: var(--ink); }
-  textarea:focus { outline: none; border-color: var(--claude); box-shadow: 0 0 0 3px var(--claude-wash); }
-  label.tog { font-size: 13px; color: var(--sub); display: inline-flex; gap: 6px; align-items: center; cursor: pointer; white-space: nowrap; }
-  label.tog input { accent-color: var(--claude); }
-  .kbd { font: 12px var(--fig); color: var(--sub); border: 1px solid var(--line-2); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; }
-  .empty { color: var(--sub); padding: 16px; font-size: 13.5px; }
-  .empty.big { padding: 40px 8px; text-align: center; font-size: 15px; }
+  button { font: 13px/1.4 var(--sans); cursor: pointer; color: var(--ink); background: transparent; border: 1px solid var(--ink); border-radius: 0; padding: 5px 12px; }
+  button:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
+  button:disabled { opacity: .3; cursor: default; }
+  button.primary { background: var(--ink); color: var(--paper); font-weight: 700; min-width: 4.5em; white-space: nowrap; }
+  button.primary:hover:not(:disabled) { background: var(--ink-2); }
+  textarea { width: 100%; min-height: 58px; font: 14px var(--sans); color: var(--ink); background: transparent; padding: 7px 9px; border: 1px solid var(--hair); border-radius: 0; resize: vertical; }
+  textarea:focus { outline: none; border-color: var(--ink); }
+  label.tog { font-size: 12.5px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; cursor: pointer; white-space: nowrap; }
+  label.tog input { accent-color: var(--ink); margin: 0; }
+  .kbd { font: 11.5px var(--mono); color: var(--muted); border: 1px solid var(--hair); padding: 0 5px; }
+  .empty { color: var(--muted); padding: 16px 0; font-size: 13.5px; }
+  .empty.big { padding: 48px 0; text-align: center; font: italic 18px var(--serif); }
+  .num { font: 400 1em/1 var(--serif); font-variant-numeric: lining-nums; }
+  .num.zero { color: var(--faint); }
 
-  /* ---------- リング（状態の内訳） ---------- */
-  .ring { display: block; flex-shrink: 0; }
-  .ring .trk { stroke: var(--line); }
-  .ring .seg { fill: none; }
-  .seg.decide { stroke: var(--you); } .seg.answered { stroke: var(--claude); } .seg.running { stroke: var(--run); } .seg.done { stroke: var(--done); }
-  .ring text { font-family: var(--fig); font-weight: 700; fill: var(--ink); }
-  .ring text.zero { fill: var(--muted); font-weight: 400; }
+  /* ---------- 全体（第一面） ---------- */
+  .ov { height: 100%; display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 18px; }
+  .ov-lead { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 0 28px; align-items: end; }
+  .tally { display: flex; align-items: flex-end; gap: 12px; padding-right: 28px; border-right: 1px solid var(--hair); }
+  .tally .num { font-size: 76px; letter-spacing: -.02em; }
+  .tally-l { padding-bottom: 8px; font-size: 13px; line-height: 1.5; }
+  .tally-l b { display: block; font-weight: 700; font-size: 14.5px; }
+  .tally-l span { display: block; font: 11.5px var(--mono); color: var(--muted); }
+  .headline { margin: 0; padding-bottom: 6px; font: 400 21px/1.55 var(--serif); letter-spacing: .01em; }
+  .headline code { font-size: .7em; }
+  .ov-lead .tog { padding-bottom: 10px; }
 
-  /* ---------- 全体 ---------- */
-  .ov { height: 100%; display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 14px; }
-  .ov-head { display: flex; align-items: baseline; gap: 18px; min-width: 0; }
-  .headline { margin: 0; flex: 1; min-width: 0; font-size: 18px; font-weight: 600; line-height: 1.55; letter-spacing: .01em; }
-  .headline .who { font-size: 13px; margin-right: 10px; vertical-align: 2px; }
-  .headline code { font-size: .8em; }
-
-  /* 一日の帯: 予定・あなた・Claude を一本の時間軸に */
-  .day { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 10px 20px 12px 16px; }
-  .plot { display: grid; grid-template-columns: 62px 1fr; }
-  .lbls { position: relative; height: 92px; font-size: 12px; color: var(--sub); }
+  /* 今日の時刻表: 予定・あなたの答えと一言・Claude の動きを一本の時間軸に */
+  .day { border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); padding: 6px 0 8px; }
+  .plot { display: grid; grid-template-columns: 70px 1fr; }
+  .lbls { position: relative; height: 84px; font-size: 12px; color: var(--muted); }
   .lbls span { position: absolute; left: 0; transform: translateY(-50%); white-space: nowrap; }
-  .area { position: relative; height: 92px; }
-  .area .past { position: absolute; left: 0; top: 18px; bottom: 0; background: var(--surface-2); border-radius: 4px 0 0 4px; }
-  .hr { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--line); }
-  .hr span { position: absolute; top: -2px; left: 4px; font: 12px/1 var(--fig); color: var(--muted); }
-  .blk { position: absolute; top: 21px; height: 24px; border-radius: 6px; background: var(--surface); border: 1px solid var(--line-2);
-         font-size: 12px; line-height: 22px; padding: 0 8px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-  .blk b { font: 700 12px var(--fig); margin-right: 5px; }
-  .blk.past { color: var(--muted); background: transparent; }
-  .blk.now { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
-  .blk.narrow { overflow: visible; padding: 0; }
-  .blk.narrow > span { position: absolute; left: calc(100% + 6px); top: -1px; white-space: nowrap; }
-  .blk.narrow.edge > span { left: auto; right: calc(100% + 6px); }
-  .mk { position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; box-shadow: 0 0 0 2px var(--surface); }
-  .mk::after { content: ""; position: absolute; inset: -6px; }   /* 当たり判定を大きく */
-  .mk.you { top: 61px; background: var(--you); transform: rotate(45deg) scale(.92); border-radius: 1.5px; }
+  .lbls .who-c { font: italic 14px var(--serif); color: var(--ink); }
+  .area { position: relative; height: 84px; }
+  .hr { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--hair); }
+  .hr span { position: absolute; top: -1px; left: 4px; font: 11px/1 var(--mono); color: var(--muted); }
+  .blk { position: absolute; top: 20px; height: 22px; border-top: 2px solid var(--ink); font-size: 12px; line-height: 18px; padding: 1px 4px 0 2px;
+         overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .blk b { font: 500 11.5px var(--mono); margin-right: 5px; }
+  .blk.past { border-top-color: var(--faint); color: var(--faint); }
+  .blk.now { font-weight: 700; border-top-width: 3px; }
+  .blk.narrow { overflow: visible; }
+  .blk.narrow > span { position: absolute; left: 0; top: 1px; white-space: nowrap; }
+  .blk.narrow.edge > span { left: auto; right: 0; }
+  .mk { position: absolute; width: 2px; height: 12px; margin: -6px 0 0 -1px; background: var(--ink); }
+  .mk::after { content: ""; position: absolute; inset: -4px -5px; }   /* 当たり判定を大きく */
+  .mk.you { top: 56px; width: 3px; }
   .mk.you[data-tab] { cursor: pointer; }
-  .mk.claude { top: 82px; background: var(--claude); border-radius: 50%; }
-  .mk.claude.new { animation: ping 1.2s ease-out 3; }
-  .nowl { position: absolute; top: 12px; bottom: -4px; border-left: 1.5px solid var(--ink); }
-  .nowl span { position: absolute; top: -12px; left: 0; transform: translateX(-50%); background: var(--ink); color: var(--surface); font: 700 11px/16px var(--fig); padding: 0 6px; border-radius: 4px; white-space: nowrap; }
+  .mk.claude { top: 74px; }
+  .mk.claude.new { background: var(--yellow); width: 4px; box-shadow: 0 0 0 1px var(--ink); }
+  .nowl { position: absolute; top: 14px; bottom: -8px; border-left: 1px solid var(--ink); }
+  .nowl span { position: absolute; top: -14px; left: 4px; font: 600 11px/1 var(--mono); white-space: nowrap; background: var(--paper); padding-right: 3px; }
 
-  .ov-body { min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 14px; }
-  .lanes { min-height: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(210px, 1fr); gap: 12px; overflow-x: auto; align-items: start; }
-  .lane { min-height: 0; max-height: 100%; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
-  .lane-h { appearance: none; border: 0; border-bottom: 1px solid var(--line); background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; width: 100%;
-            display: flex; align-items: center; gap: 12px; padding: 14px 14px 12px; border-radius: var(--r-lg) var(--r-lg) 0 0; }
-  .lane-h:hover { background: var(--hover); }
-  .lane-name { font-weight: 700; font-size: 15px; line-height: 1.35; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
-  .brk { display: flex; flex-wrap: wrap; gap: 0 10px; margin-top: 3px; font-size: 12px; color: var(--sub); line-height: 1.6; }
-  .brk span { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
-  .brk b { font: 700 13px var(--fig); color: var(--ink); }
-  /* プロジェクトの担当エージェント（projects[].lead があるときだけ） */
-  .lead { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 8px; padding: 7px 14px 8px; font-size: 12px; line-height: 1.55;
-          background: var(--surface-2); border-bottom: 1px solid var(--line); }
-  .lead-st { display: inline-flex; align-items: center; gap: 5px; font-weight: 700; white-space: nowrap; }
-  .lead-who { font-weight: 400; color: var(--sub); margin-right: 3px; }
-  .lead.working .lead-st { color: var(--claude-ink); }
-  .lead.waiting .lead-st { color: var(--you-ink); }
-  .lead.idle .lead-st { color: var(--sub); }
-  .lead-at { font: 12px/1.55 var(--fig); color: var(--muted); }
-  .lead-sum { grid-column: 1 / -1; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .lane-items { min-height: 0; overflow: auto; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
-  .tok { display: grid; grid-template-columns: 12px minmax(0, 1fr); gap: 2px 9px; width: 100%; padding: 8px 10px; text-align: left; color: inherit;
-         border-radius: var(--r-md); border: 1px solid var(--line); background: var(--surface); }
-  .tok:hover:not(:disabled) { border-color: var(--line-2); background: var(--hover); }
-  .tok .g { margin-top: 5px; }
-  .tok.decide { background: var(--you-wash); border-color: transparent; }
-  .tok.decide:hover { border-color: var(--you); background: var(--you-wash); }
-  .tok.done .tok-t { color: var(--sub); }
-  .tok.up { box-shadow: inset 0 0 0 1.5px var(--claude); }
-  .tok-t { font-size: 13.5px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .tok-m { grid-column: 2; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 11.5px; color: var(--sub); }
-  .tok.decide .tok-m { color: var(--you-ink); font-weight: 600; }
-  .lane-note { font-size: 12.5px; color: var(--sub); padding: 6px 4px; display: flex; gap: 6px; align-items: center; }
+  .ov-body { min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 340px; }
+  .lanes { min-height: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(200px, 1fr); overflow-x: auto; }
+  .lane { min-height: 0; display: flex; flex-direction: column; padding: 0 18px; border-left: 1px solid var(--hair); }
+  .lane:first-child { padding-left: 0; border-left: 0; }
+  .lane-h { appearance: none; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; width: 100%; border-radius: 0;
+            display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 12px; align-items: end; padding: 0 0 8px; border-bottom: 1px solid var(--ink); }
+  .lane-h:hover:not(:disabled) { background: none; color: inherit; }
+  .lane-h:hover .lane-name { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+  .lane-name { font: 400 20px/1.3 var(--serif); display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+  .lane-n { text-align: right; }
+  .lane-n .num { font-size: 40px; }
+  .lane-n small { display: block; font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .brk { display: flex; flex-wrap: wrap; gap: 0 12px; grid-column: 1 / -1; font: 11px/1.8 var(--mono); color: var(--muted); }
+  .brk b { color: var(--ink); font-weight: 500; margin-left: 4px; }
+  .lane-items { min-height: 0; overflow: auto; }
+  .tok { display: block; width: 100%; text-align: left; color: inherit; background: none; border: 0; border-bottom: 1px solid var(--hair); border-radius: 0; padding: 9px 0; }
+  .tok:hover:not(:disabled) { background: none; color: inherit; }
+  .tok:hover .tok-t { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+  .tok-t { display: block; font-size: 14px; line-height: 1.55; }
+  .tok-t > span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .tok-m { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; margin-top: 3px; }
+  .tok.done .tok-t { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }
+  .lane-note { font-size: 12.5px; color: var(--muted); padding: 9px 0; }
+  .lane-note.all { font: italic 15px var(--serif); color: var(--ink-2); }
 
-  .side { min-height: 0; display: grid; grid-template-rows: minmax(0, 2fr) minmax(0, 1fr); gap: 12px; }
-  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); min-height: 0; display: flex; flex-direction: column; }
-  .panel > h2 { margin: 0; padding: 12px 16px 6px; font-size: 13.5px; font-weight: 700; display: flex; gap: 8px; align-items: center; }
-  .panel > .scroll { flex: 1; min-height: 0; overflow: auto; padding: 0 12px 12px 10px; }
+  .side { min-height: 0; display: grid; grid-template-rows: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; padding-left: 20px; border-left: 1px solid var(--ink); }
+  .panel { min-height: 0; display: flex; flex-direction: column; }
+  .panel > h2 { margin: 0; padding: 0 0 8px; border-bottom: 1px solid var(--ink); font: 400 20px/1.3 var(--serif); }
+  .panel > h2 i { font-style: italic; }
+  .panel > .scroll { flex: 1; min-height: 0; overflow: auto; }
   .feed { list-style: none; margin: 0; padding: 0; }
-  .feed li { display: flex; gap: 8px; padding: 5px 6px 5px 0; border-radius: 8px; font-size: 13.5px; line-height: 1.6; }
-  .feed .ts { width: 40px; flex-shrink: 0; text-align: right; font: 12.5px/1.75 var(--fig); color: var(--muted); }
-  .feed .tx { position: relative; flex: 1; min-width: 0; padding-left: 18px; word-break: break-word; }
-  .feed .tx::before { content: ""; position: absolute; left: 2px; top: .52em; width: 9px; height: 9px; border-radius: 50%; background: var(--surface); box-shadow: inset 0 0 0 2px var(--claude); }
-  .feed li:not(:last-child) .tx::after { content: ""; position: absolute; left: 6px; top: calc(.52em + 13px); bottom: -11px; width: 1.5px; background: var(--line); }
-  .feed li.fresh .tx::before { background: var(--claude); }
-  .feed.memo .tx::before { box-shadow: none; background: var(--you); transform: rotate(45deg) scale(.85); border-radius: 1.5px; }
-  .feed.memo li:not(:last-child) .tx::after { display: none; }
+  .feed li { display: grid; grid-template-columns: 46px 1fr; gap: 0 8px; padding: 8px 0; border-bottom: 1px solid var(--hair); font-size: 13.5px; line-height: 1.65; }
+  .feed .ts { margin: 0; padding-top: 1px; }
+  .feed .tx { min-width: 0; overflow-wrap: anywhere; }
+
+  /* 担当のエージェント（projects[].lead があるときだけ） */
+  .lead { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 8px; padding: 7px 0 8px; border-bottom: 1px solid var(--hair); font-size: 12.5px; line-height: 1.55; }
+  .lead-st { font: 11px/1.6 var(--mono); letter-spacing: .04em; color: var(--muted); white-space: nowrap; }
+  .lead-st b { color: var(--ink); font-weight: 600; margin-left: 6px; }
+  .lead-at { font: 11px/1.6 var(--mono); color: var(--muted); }
+  .lead-sum { grid-column: 1 / -1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
   /* ---------- プロジェクト ---------- */
-  .pj { display: grid; grid-template-columns: 316px minmax(0, 1fr); gap: 14px; height: 100%; }
-  .list { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: auto; padding-bottom: 6px; }
-  .list-top { position: sticky; top: 0; z-index: 1; background: var(--surface); border-radius: var(--r-lg) var(--r-lg) 0 0; }
-  .list-h { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--line); border-radius: var(--r-lg) var(--r-lg) 0 0; }
-  .list-h .lane-name { font-size: 14.5px; }
-  .grp { font-size: 12px; color: var(--sub); padding: 12px 16px 4px; font-weight: 700; letter-spacing: .04em; }
-  .row { display: grid; grid-template-columns: 12px 1fr; gap: 0 10px; padding: 8px 14px 8px 13px; cursor: pointer; border-left: 3px solid transparent; }
-  .row:hover { background: var(--hover); }
-  .row.on { background: var(--claude-wash); border-left-color: var(--claude); }
-  .row .g { margin-top: 6px; }
-  .row .t { font-size: 14px; line-height: 1.55; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .row .s { font-size: 11.5px; color: var(--sub); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-  .row .s .st-decide { color: var(--you-ink); font-weight: 600; }
-  .row.donerow .t { color: var(--sub); }
-  details.donebox { border-top: 1px solid var(--line); margin-top: 8px; }
-  details.donebox > summary { padding: 9px 16px; font-size: 12.5px; color: var(--sub); cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; }
+  .pj { display: grid; grid-template-columns: 300px minmax(0, 1fr); height: 100%; }
+  .list { overflow: auto; padding-right: 20px; }
+  .list-top { position: sticky; top: 0; z-index: 1; background: var(--paper); }
+  .list-h { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 12px; align-items: end; padding-bottom: 8px; border-bottom: 1px solid var(--ink); }
+  .list-h .lane-name { font-size: 22px; }
+  .grp { font: 11px var(--mono); letter-spacing: .08em; color: var(--muted); padding: 14px 0 4px; border-bottom: 1px solid var(--hair); }
+  .row { position: relative; padding: 9px 10px 9px 12px; cursor: pointer; border-bottom: 1px solid var(--hair); border-left: 3px solid transparent; margin-left: -15px; }
+  .row:hover .t { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+  .row.on { border-left-color: var(--ink); background: var(--paper-2); }
+  .row.on .t { font-weight: 700; }
+  .row .t { font-size: 14px; line-height: 1.55; }
+  .row .t > span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .row .s { display: flex; gap: 4px 10px; align-items: center; flex-wrap: wrap; margin-top: 2px; font-size: 11.5px; }
+  .row.donerow .t { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }
+  .rdone { position: absolute; right: 6px; bottom: 8px; padding: 0 8px; font-size: 11.5px; line-height: 1.6; background: var(--paper); display: none; }
+  .row:hover .rdone, .row:focus-within .rdone { display: block; }
+  details.donebox > summary { padding: 12px 0 6px; font: 11px var(--mono); letter-spacing: .08em; color: var(--muted); cursor: pointer; list-style: none; border-bottom: 1px solid var(--hair); }
   details.donebox > summary::-webkit-details-marker { display: none; }
-  details.donebox > summary::after { content: ""; width: 6px; height: 6px; border: solid var(--muted); border-width: 0 1.5px 1.5px 0; transform: rotate(-45deg); transition: transform .15s; margin-left: 2px; }
-  details.donebox[open] > summary::after { transform: rotate(45deg); }
-  .detail { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); display: flex; flex-direction: column; min-height: 0; }
-  .d-h { display: flex; align-items: center; gap: 12px; padding: 16px 22px 14px; border-bottom: 1px solid var(--line); border-radius: var(--r-lg) var(--r-lg) 0 0; }
-  .d-h h3 { margin: 0; flex: 1; font-size: 19px; line-height: 1.45; font-weight: 700; letter-spacing: .01em; }
-  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 11px 2px 9px; border-radius: 999px; font-size: 12.5px; font-weight: 700; white-space: nowrap; }
-  .pill.decide { background: var(--you-wash); color: var(--you-ink); }
-  .pill.answered { background: var(--claude-wash); color: var(--claude-ink); }
-  .pill.running { background: var(--surface-2); color: var(--sub); box-shadow: inset 0 0 0 1px var(--line); }
-  .pill.done { background: var(--done-wash); color: var(--done-ink); }
-  .urgent { font-size: 12.5px; font-weight: 700; color: var(--urgent-ink); background: var(--urgent-wash); border-radius: 999px; padding: 2px 10px; white-space: nowrap; }
-  .d-b { flex: 1; overflow: auto; padding: 8px 22px 22px; }
-  .d-b > ul, .d-b > .q, .d-b > .draft, .d-b > details { max-width: 900px; }
-  .d-b ul { margin: 8px 0 10px; padding-left: 1.2em; }
-  .d-b li { margin: 3px 0; }
-  .d-b li::marker { color: var(--muted); }
-  details.more { margin: 4px 0 12px; }
-  details.more summary { cursor: pointer; color: var(--sub); font-size: 13px; }
-  .links { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
-  .links a { font-size: 13.5px; padding: 2px 12px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); text-decoration: none; }
-  .links a:hover { border-color: var(--claude); }
-  .draft { border: 1px solid var(--line); border-radius: var(--r-md); margin: 14px 0; overflow: hidden; }
-  .draft-h { display: flex; gap: 10px; align-items: center; padding: 7px 10px 7px 14px; background: var(--surface-2); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
-  .draft-h b { font-size: 14px; }
-  .draft-h a { font-size: 13.5px; }
-  .draft pre { margin: 0; padding: 14px 16px; white-space: pre-wrap; word-break: break-word; font: inherit; font-size: 14px; line-height: 1.8; max-height: 320px; overflow: auto; }
-  .draft.bad pre { color: var(--urgent-ink); }
-  .q { position: relative; border: 1px solid var(--line); border-radius: var(--r-md); padding: 12px 14px 12px 18px; margin: 14px 0 0; }
-  .q::before { content: ""; position: absolute; left: -1px; top: 12px; bottom: 12px; width: 3px; border-radius: 0 3px 3px 0; background: var(--you); }
-  .q.answered::before { background: var(--claude); }
-  .q.closed::before { background: var(--line-2); }
-  .q-t { font-weight: 700; margin-bottom: 8px; }
+  details.donebox > summary::after { content: "開く"; margin-left: 10px; text-decoration: underline; text-underline-offset: 3px; }
+  details.donebox[open] > summary::after { content: "畳む"; }
+  .detail { min-height: 0; display: flex; flex-direction: column; padding-left: 28px; border-left: 1px solid var(--ink); }
+  .d-h { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 20px; align-items: end; padding: 0 0 12px; border-bottom: 2px solid var(--ink); }
+  .d-k { grid-column: 1 / -1; display: flex; gap: 14px; align-items: baseline; font: 11px var(--mono); letter-spacing: .06em; color: var(--muted); margin-bottom: 4px; }
+  .d-k .urg { font-family: var(--sans); font-size: 12px; letter-spacing: 0; }
+  .d-h h3 { margin: 0; font: 400 26px/1.4 var(--serif); letter-spacing: .01em; }
+  .donebtn { padding: 5px 14px; font-weight: 600; white-space: nowrap; margin-bottom: 4px; }
+  .d-b { flex: 1; overflow: auto; padding: 12px 0 22px; }
+  .d-b > ul, .d-b > .q, .d-b > .draft, .d-b > details, .d-b > .links { max-width: 860px; }
+  .d-b ul { margin: 6px 0 10px; padding-left: 1.2em; list-style: square; }
+  .d-b li { margin: 4px 0; }
+  .d-b li::marker { color: var(--faint); }
+  details.more { margin: 2px 0 12px; }
+  details.more summary { cursor: pointer; color: var(--muted); font-size: 13px; text-decoration: underline; text-underline-offset: 3px; list-style: none; }
+  details.more summary::-webkit-details-marker { display: none; }
+  details.more ul { color: var(--ink-2); }
+  .links { display: flex; gap: 18px; flex-wrap: wrap; margin: 10px 0 4px; font-size: 13.5px; }
+  .draft { margin: 18px 0; border-top: 1px solid var(--ink); }
+  .draft-h { display: flex; gap: 12px; align-items: baseline; padding: 7px 0; flex-wrap: wrap; }
+  .draft-h b { font-size: 13.5px; }
+  .draft-h a { font-size: 13px; }
+  .draft-h button { padding: 2px 10px; font-size: 12.5px; }
+  .draft pre { margin: 0; padding: 4px 0 4px 16px; border-left: 2px solid var(--ink); white-space: pre-wrap; word-break: break-word; font: 14px/1.85 var(--sans); max-height: 320px; overflow: auto; }
+  .draft.bad pre { font-weight: 700; }
+  .q { margin: 20px 0 0; padding-top: 8px; border-top: 1px solid var(--ink); }
+  .q-k { display: flex; gap: 12px; align-items: baseline; font: 11px var(--mono); letter-spacing: .06em; color: var(--muted); }
+  .q-k .turn { color: var(--ink); font-weight: 600; }
+  .q-t { font-size: 15.5px; font-weight: 700; margin: 2px 0 10px; }
   .opts { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
-  .opt { border-radius: 999px; padding: 4px 15px; }
-  .opt:hover:not(:disabled) { border-color: var(--claude); color: var(--claude-ink); background: var(--surface); }
-  .opt.sel, .opt.sel:hover:not(:disabled) { background: var(--claude); color: var(--on-claude); border-color: var(--claude); }
-  .opt.sel::before { content: "✓ "; }
+  .opt { padding: 5px 14px; }
+  .opt.sel, .opt.sel:hover:not(:disabled) { background: var(--yellow); color: var(--on-yellow); border-color: var(--on-yellow); font-weight: 700; }
   .q-row { display: flex; gap: 8px; align-items: flex-start; }
   .q-row textarea { min-height: 38px; }
-  .ans { margin-top: 10px; font-size: 13px; color: var(--sub); display: flex; gap: 8px; align-items: baseline; }
-  .ans .g { vertical-align: 0; }
-  .reply { margin-top: 8px; padding: 9px 12px 10px 14px; background: var(--claude-wash); border-radius: var(--r-md); font-size: 14px; }
-  .reply::before { content: "Claude"; display: block; font-size: 11.5px; font-weight: 700; color: var(--claude-ink); }
-  .diagram { margin: 12px 0 6px; overflow-x: auto; border-radius: var(--r-md); }
+  .ans { margin-top: 10px; font: 12px/1.6 var(--mono); color: var(--muted); }
+  .ans span { font-family: var(--sans); color: var(--ink-2); }
+  .reply { margin-top: 10px; padding: 2px 0 2px 14px; border-left: 2px solid var(--ink); font-size: 14px; }
+  .reply::before { content: "Claude"; display: block; font: italic 15px var(--serif); color: var(--ink); }
+  .diagram { margin: 14px 0 6px; overflow-x: auto; }
   .diagram svg { display: block; max-width: 100%; height: auto; }
-  .diagram.paper { background: var(--paper); }
+  .diagram.paper { background: var(--sheet); }
   @media (prefers-color-scheme: dark) { .diagram.paper { padding: 12px 14px; color-scheme: light; } }
-  svg text { font-family: var(--jp); }
-  .d-f { display: flex; gap: 8px; align-items: center; padding: 9px 18px; border-top: 1px solid var(--line); }
-  .d-f .pos { font: 13px var(--fig); color: var(--sub); }
-  .steps { display: flex; gap: 3px; align-items: center; margin: 0 6px; }
-  .steps i { width: 14px; height: 6px; border-radius: 3px; cursor: pointer; }
-  .steps i.decide { background: var(--you); } .steps i.answered { background: var(--claude); } .steps i.running { background: var(--run); } .steps i.done { background: var(--done); }
-  .steps i.cur { width: 26px; height: 8px; }
+  svg text { font-family: var(--serif); }
+  .d-f { display: flex; gap: 8px; align-items: center; padding: 10px 0 0; border-top: 1px solid var(--ink); }
+  .d-f .pos { font: 12.5px var(--mono); color: var(--muted); margin: 0 6px; }
+  .d-f .muted { font-size: 12px; }
 
-  /* Claude が書いた SVG の色を画面の体系に合わせる（ルートの svg に class="themed"） */
+  /* Claude が書いた SVG を紙面の色に合わせる（ルートの svg に class="themed"）。黄色は f-you だけ */
   svg.themed text { fill: var(--ink); }
-  svg.themed .f-you { fill: var(--you); } svg.themed .f-claude { fill: var(--claude); } svg.themed .f-run { fill: var(--run); }
-  svg.themed .f-done { fill: var(--done); } svg.themed .f-urgent { fill: var(--urgent); } svg.themed .f-ink { fill: var(--ink); }
-  svg.themed .f-sub { fill: var(--sub); } svg.themed .f-muted { fill: var(--muted); } svg.themed .f-line { fill: var(--line-2); }
-  svg.themed .f-surface { fill: var(--surface); } svg.themed .f-wash { fill: var(--surface-2); }
-  svg.themed .f-you-wash { fill: var(--you-wash); } svg.themed .f-claude-wash { fill: var(--claude-wash); } svg.themed .f-done-wash { fill: var(--done-wash); } svg.themed .f-urgent-wash { fill: var(--urgent-wash); }
-  svg.themed .f-you-ink { fill: var(--you-ink); } svg.themed .f-claude-ink { fill: var(--claude-ink); } svg.themed .f-done-ink { fill: var(--done-ink); } svg.themed .f-urgent-ink { fill: var(--urgent-ink); }
-  svg.themed .f-on { fill: var(--on-claude); } svg.themed .f-on-you { fill: var(--on-you); }
-  svg.themed .s-you { stroke: var(--you); } svg.themed .s-claude { stroke: var(--claude); } svg.themed .s-run { stroke: var(--run); }
-  svg.themed .s-done { stroke: var(--done); } svg.themed .s-urgent { stroke: var(--urgent); } svg.themed .s-ink { stroke: var(--ink); }
-  svg.themed .s-sub { stroke: var(--sub); } svg.themed .s-muted { stroke: var(--muted); } svg.themed .s-line { stroke: var(--line-2); }
+  svg.themed .f-you, svg.themed .f-you-wash { fill: var(--yellow); } svg.themed .f-on-you { fill: var(--on-yellow); }
+  svg.themed .f-claude, svg.themed .f-urgent, svg.themed .f-ink, svg.themed .f-claude-ink, svg.themed .f-urgent-ink, svg.themed .f-you-ink { fill: var(--ink); }
+  svg.themed .f-done, svg.themed .f-done-ink, svg.themed .f-sub, svg.themed .f-run { fill: var(--muted); }
+  svg.themed .f-muted { fill: var(--faint); } svg.themed .f-line { fill: var(--hair); }
+  svg.themed .f-surface, svg.themed .f-on { fill: var(--paper); }
+  svg.themed .f-wash, svg.themed .f-claude-wash, svg.themed .f-done-wash, svg.themed .f-urgent-wash { fill: var(--paper-2); }
+  svg.themed .s-you, svg.themed .s-claude, svg.themed .s-urgent, svg.themed .s-ink { stroke: var(--ink); }
+  svg.themed .s-done, svg.themed .s-sub, svg.themed .s-run { stroke: var(--muted); }
+  svg.themed .s-muted { stroke: var(--faint); } svg.themed .s-line { stroke: var(--hair); }
 
-  /* ---------- 光る・知らせる ---------- */
-  @keyframes glow { 0%, 25% { background-color: var(--claude-wash); box-shadow: inset 0 0 0 2px var(--claude); } 100% { box-shadow: inset 0 0 0 2px transparent; } }
-  @keyframes glowr { 0%, 25% { box-shadow: inset 0 0 0 2px var(--claude); } 100% { box-shadow: inset 0 0 0 2px transparent; } }
-  @keyframes ping { 0% { box-shadow: 0 0 0 2px var(--surface), 0 0 0 2px var(--claude); } 100% { box-shadow: 0 0 0 2px var(--surface), 0 0 0 11px transparent; } }
-  .fresh { animation: glow 3s ease-out; }
-  .reply.fresh { animation: glowr 3s ease-out; }
-  .toast { position: fixed; bottom: 20px; right: 20px; z-index: 20; max-width: 540px; padding: 11px 16px; border-radius: 12px; font-size: 14px;
-           background: var(--ink); color: var(--surface); box-shadow: 0 10px 30px rgba(15, 18, 32, .28);
-           opacity: 0; transform: translateY(8px); transition: opacity .2s, transform .2s; pointer-events: none; }
-  .toast.show { opacity: 1; transform: none; }
-  .toast b { color: var(--toast-accent); margin-right: 8px; }
-  .toast code { background: transparent; border-color: currentColor; }
-  .tip { position: fixed; z-index: 30; max-width: 380px; padding: 6px 10px; border-radius: 8px; background: var(--ink); color: var(--surface);
-         font-size: 12.5px; line-height: 1.55; pointer-events: none; opacity: 0; transition: opacity .12s; }
+  .toast { position: fixed; bottom: 22px; right: 22px; z-index: 20; max-width: 540px; padding: 10px 16px; font-size: 13.5px;
+           background: var(--paper); color: var(--ink); border: 1px solid var(--ink); border-top-width: 3px;
+           opacity: 0; transition: opacity .15s; pointer-events: none; display: flex; align-items: baseline; gap: 10px; }
+  .toast.show { opacity: 1; }
+  .toast.act { pointer-events: auto; }
+  .toast b { font: italic 400 15px var(--serif); }
+  .toast button { padding: 2px 10px; font-size: 12.5px; white-space: nowrap; }
+  .tip { position: fixed; z-index: 30; max-width: 380px; padding: 5px 9px; background: var(--ink); color: var(--paper);
+         font-size: 12.5px; line-height: 1.55; pointer-events: none; opacity: 0; }
   .tip.show { opacity: 1; }
 
   @media (max-width: 860px) {
     body { overflow: auto; height: auto; display: block; }
-    .wrap, main { padding-left: 14px; padding-right: 14px; }
-    .bar { flex-wrap: wrap; gap: 8px 14px; }
-    .sched { order: 5; width: 100%; }
+    .wrap, main { padding-left: 16px; padding-right: 16px; }
+    .mast { flex-wrap: wrap; gap: 6px 16px; }
+    .sched { order: 5; width: 100%; flex-wrap: wrap; gap: 2px 14px; }
     .ticker { flex-wrap: wrap; }
     .say { width: 100%; }
-    .ov, .ov-body, .side, .pj { display: flex; flex-direction: column; height: auto; }
-    .lanes { grid-auto-flow: row; grid-auto-columns: auto; }
-    .list { max-height: 45vh; }
-    .detail { min-height: 70vh; }
+    .counts { display: none; }
+    .ov, .ov-body, .side, .pj { display: flex; flex-direction: column; height: auto; gap: 18px; }
+    .ov-lead { grid-template-columns: 1fr; gap: 10px; }
+    .tally { border-right: 0; }
+    .lanes { grid-auto-flow: row; grid-auto-columns: auto; gap: 18px; }
+    .lane { padding: 0; border-left: 0; }
+    .side { padding-left: 0; border-left: 0; }
+    .list { max-height: 45vh; padding-right: 0; }
+    .row { margin-left: 0; }
+    .detail { padding-left: 0; border-left: 0; min-height: 70vh; }
   }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; }
@@ -336,18 +314,17 @@
 <body>
 <header class="top">
   <div class="wrap">
-    <div class="bar">
-      <h1 class="brand"><span class="mark" aria-hidden="true"></span><span id="title">今日のリーダー</span></h1>
-      <div id="counts" class="counts"></div>
+    <div class="mast">
+      <h1 class="brand"><span class="star" aria-hidden="true"></span><span id="title">今日のリーダー</span></h1>
       <span class="spacer"></span>
       <ol id="sched" class="sched" aria-label="今日の予定"></ol>
-      <span id="gen" class="gen"></span>
+      <div class="dateline"><span id="date"></span><span id="gen"></span></div>
     </div>
     <div class="ticker">
-      <span class="who"><span class="live" id="live"></span>Claude</span><span class="txt" id="tick">—</span>
+      <span class="who">Claude</span><span class="txt" id="tick">—</span>
       <form id="gform" class="say"><input id="gmsg" type="text" placeholder="Claude に一言（どのタブからでも）" autocomplete="off"><button class="primary" type="submit">送る</button></form>
     </div>
-    <nav class="tabs" id="tabs"></nav>
+    <div class="tabs-row"><nav class="tabs" id="tabs"></nav><div id="counts" class="counts"></div></div>
   </div>
 </header>
 <main><div id="banners"></div><div class="view" id="view"></div></main>
@@ -362,7 +339,7 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": 
 const md = s => esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/`([^`]+)`/g, "<code>$1</code>");
 const plain = s => String(s ?? "").replace(/\*\*(.+?)\*\*/g, "$1").replace(/`([^`]+)`/g, "$1");
 let toastTimer;
-function toast(html, ms = 1800) { const el = $("#toast"); el.innerHTML = html; el.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("show"), ms); }
+function toast(html, ms = 1800) { const el = $("#toast"); el.innerHTML = html; el.classList.remove("act"); el.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("show"), ms); }
 async function post(path, body) {
   return fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 }
@@ -375,7 +352,14 @@ function itemState(it) {
 }
 const STATES = ["decide", "answered", "running", "done"];
 const LABEL = { decide: "判断待ち", answered: "回答済み", running: "進行中", done: "済み" };
-const glyph = st => `<i class="g ${st}" aria-hidden="true"></i>`;
+const stWord = st => `<span class="st st-${st}">${LABEL[st]}</span>`;
+const updMark = (n = "") => `<span class="upd hl">更新${n === "" ? "" : " " + n}</span>`;
+// 題: 判断待ちは蛍光ペンを引く。pen は更新を知らせる動きを付ける場所
+const titleSpan = (it, st) => `<span><span class="pen ${st === "decide" ? "hl" : ""}">${esc(it.title)}</span></span>`;
+// 答えと一言を Claude が受け取ったか（routed がある server のときだけ出す）
+const routedMark = d => d && typeof d.routed === "boolean" ? (d.routed ? `<span class="rt">受け取り済み</span>` : `<span class="rt wait">Claude 未処理</span>`) : "";
+// 動いたことを書いた担当のプロジェクト（log[].project があるときだけ）
+const logProj = l => { if (!l || !l.project) return ""; const p = (state.projects || []).find(x => x.id === l.project); return `<span class="lp">${esc(p ? p.label : l.project)}</span>`; };
 function countStates(list) { const c = { decide: 0, answered: 0, running: 0, done: 0 }; list.forEach(i => c[itemState(i)]++); return c; }
 
 // ---------- 時刻（"2026-11-19 14:05:12" や "11/19 14:05" や "14:05" の末尾の時:分を読む） ----------
@@ -385,11 +369,12 @@ function hm(ts) {
 }
 function nowMin() { const d = new Date(); return d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60; }
 const clock = m => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(Math.floor(m % 60)).padStart(2, "0")}`;
+function dateText() { const d = new Date(); return `${["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][d.getDay()]} ${d.getDate()} ${["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"][d.getMonth()]} ${d.getFullYear()}`; }
 
 // ---------- 既読（Claude の更新を見たか。localStorage に作業フォルダーごとに覚える） ----------
 let seen = null, seenKey = null;
 function hash(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return h; }
-// 利用者自身の答えは入れない（Claude の側の変化だけ）
+// 利用者自身の答えは入れない（Claude の側の変化だけ）。利用者の「完了」による status の変化は poll で既読に合わせる
 function sig(it) { return hash(JSON.stringify([it.status, it.title, it.summary, (it.questions || []).map(q => [q.text, q.reply || ""]), (it.drafts || []).map(d => d.text)])); }
 function saveSeen() { try { localStorage.setItem(seenKey, JSON.stringify(seen)); } catch (e) { /* 覚えられなくても動く */ } }
 function loadSeen(j) {
@@ -430,26 +415,17 @@ function currentOf(pj, itemId) {
   const act = activeOrder(pj);
   return itemsOf(pj).find(i => i.id === itemId) || act.find(i => itemState(i) === "decide") || act[0] || doneOrder(pj)[0];
 }
+// cur の後ろ（無ければ先頭から）の、次の判断待ち。act は cur がまだ並んでいたときの順番
+function nextDecide(act, cur) { return act.slice(act.indexOf(cur) + 1).concat(act).find(i => i.id !== cur.id && itemState(i) === "decide"); }
 
-// ---------- リング（状態の内訳。中の数字は判断待ち） ----------
-function ringSvg(c, size) {
-  const total = STATES.reduce((a, k) => a + c[k], 0), r = 15.5, C = 2 * Math.PI * r;
-  const parts = STATES.filter(k => c[k]), gap = parts.length > 1 ? 1.4 : 0;
-  let s = `<svg class="ring" width="${size}" height="${size}" viewBox="0 0 40 40" role="img" aria-label="${parts.map(k => `${LABEL[k]} ${c[k]}`).join("、") || "項目なし"}">`;
-  s += `<circle class="trk" cx="20" cy="20" r="${r}" fill="none" stroke-width="5"/>`;
-  let off = 0;
-  for (const k of parts) {
-    const len = c[k] / total * C;
-    s += `<circle class="seg ${k}" cx="20" cy="20" r="${r}" stroke-width="5" stroke-dasharray="${Math.max(len - gap, .01).toFixed(2)} ${C.toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 20 20)" data-tip="${LABEL[k]} ${c[k]} 件"/>`;
-    off += len;
-  }
-  return s + `<text x="20" y="20" dy=".36em" text-anchor="middle" font-size="${c.decide > 9 ? 13 : 15}" class="${c.decide ? "" : "zero"}">${c.decide}</text></svg>`;
-}
+// 判断待ち以外の内訳を等幅の文字で
 function breakdown(c) {
-  return `<span class="brk">${STATES.filter(k => c[k]).map(k => `<span>${glyph(k)}${LABEL[k]}<b>${c[k]}</b></span>`).join("") || "<span>項目なし</span>"}</span>`;
+  const parts = ["answered", "running", "done"].filter(k => c[k]).map(k => `<span>${LABEL[k]}<b>${c[k]}</b></span>`);
+  return parts.length ? `<span class="brk">${parts.join("")}</span>` : "";
 }
+const bigNum = n => `<span class="num ${n ? "" : "zero"}">${n}</span>`;
 
-// ---------- 一日の帯（予定・あなたの答えと一言・Claude の動きを一本の時間軸に） ----------
+// ---------- 今日の時刻表（予定・あなたの答えと一言・Claude の動きを一本の時間軸に） ----------
 function dayStrip() {
   const s = state, now = nowMin();
   const sched = (s.schedule || []).map(x => { const a = hm(x.time), b = hm(x.end); return a ? { a: a.min, b: b ? b.min : a.min + 30, x } : null; }).filter(Boolean);
@@ -458,6 +434,7 @@ function dayStrip() {
     const t = q.answer && hm(q.answer.ts);
     if (t) you.push({ t: t.min, tab: it.project, item: it.id, tip: `${t.text}　答えた「${plain(it.title)}」${q.answer.choice ? "：" + q.answer.choice : ""}` });
   }));
+  s.items.forEach(it => { const t = it.user_done && hm(it.user_done.ts); if (t) you.push({ t: t.min, tab: it.project, item: it.id, tip: `${t.text}　${it.user_done.done ? "完了にした" : "未完了に戻した"}「${plain(it.title)}」` }); });
   (s.messages || []).forEach(m => { const t = hm(m.ts); if (t) you.push({ t: t.min, tip: `${t.text}　一言：${m.note}` }); });
   const L = s.log || [], u = unreadLog();
   const cl = L.map((l, i) => { const t = hm(l.ts); return t ? { t: t.min, tip: `${t.text}　${plain(l.text)}`, fresh: u && i >= L.length - u } : null; }).filter(Boolean);
@@ -465,30 +442,31 @@ function dayStrip() {
   const h0 = Math.max(0, Math.min(9, Math.floor(Math.min(...all) / 60))), h1 = Math.min(24, Math.max(18, Math.ceil((Math.max(...all) + 1) / 60)));
   const pct = m => `${Math.min(100, Math.max(0, (m - h0 * 60) / ((h1 - h0) * 60) * 100)).toFixed(3)}%`;
   const step = h1 - h0 > 14 ? 2 : 1;
-  let a = `<div class="area" data-h0="${h0}" data-h1="${h1}"><div class="past" style="width:${pct(now)}"></div>`;
-  for (let h = h0; h < h1; h += step) a += `<div class="hr" style="left:${pct(h * 60)}"><span>${h}</span></div>`;
+  let a = `<div class="area" data-h0="${h0}" data-h1="${h1}">`;
+  // 今の時刻の札と重なる目盛りの数字は出さない
+  for (let h = h0; h < h1; h += step) a += `<div class="hr" style="left:${pct(h * 60)}">${h * 60 <= now && (now - h * 60) / ((h1 - h0) * 60) < .045 ? "" : `<span>${String(h).padStart(2, "0")}</span>`}</div>`;
   sched.forEach(e => {
     const cls = now >= e.b ? "past" : now >= e.a ? "now" : "";
     const tip = `${e.x.time}${e.x.end ? "–" + e.x.end : ""}　${e.x.title || ""}`;
-    // 短い予定は、名前を枠の外（右、右端なら左）に出す
-    const narrow = (e.b - e.a) / ((h1 - h0) * 60) < .09, edge = (e.b - h0 * 60) / ((h1 - h0) * 60) > .8;
-    a += `<div class="blk ${cls} ${narrow ? "narrow" : ""} ${narrow && edge ? "edge" : ""}" style="left:${pct(e.a)};width:calc(${pct(e.b)} - ${pct(e.a)} - 3px)" data-tip="${esc(tip)}"><span><b>${esc(e.x.time)}</b>${esc(e.x.title || "")}</span></div>`;
+    // 短い予定は、名前を線の外（右、右端なら左）に出す
+    const narrow = (e.b - e.a) / ((h1 - h0) * 60) < .045, edge = (e.b - h0 * 60) / ((h1 - h0) * 60) > .8;
+    a += `<div class="blk ${cls} ${narrow ? "narrow" : ""} ${narrow && edge ? "edge" : ""}" style="left:${pct(e.a)};width:calc(${pct(e.b)} - ${pct(e.a)} - 4px)" data-tip="${esc(tip)}"><span><b>${esc(e.x.time)}</b>${esc(e.x.title || "")}</span></div>`;
   });
   you.forEach(e => a += `<span class="mk you" style="left:${pct(e.t)}" data-tip="${esc(e.tip)}"${e.item ? ` data-tab="${esc(e.tab)}" data-item="${esc(e.item)}"` : ""}></span>`);
   cl.forEach(e => a += `<span class="mk claude ${e.fresh ? "new" : ""}" style="left:${pct(e.t)}" data-tip="${esc(e.tip)}"></span>`);
-  a += `<div class="nowl" style="left:${pct(now)}"><span>今 ${clock(now)}</span></div></div>`;
-  const lbl = `<div class="lbls"><span style="top:33px">予定</span><span style="top:61px">${glyph("decide")} あなた</span><span style="top:82px">${glyph("answered")} Claude</span></div>`;
-  return `<section class="day" aria-label="今日の流れ"><div class="plot">${lbl}${a}</div></section>`;
+  a += `<div class="nowl" style="left:${pct(now)}"><span>${clock(now)}</span></div></div>`;
+  const lbl = `<div class="lbls"><span style="top:31px">予定</span><span style="top:56px">あなた</span><span class="who-c" style="top:74px">Claude</span></div>`;
+  return `<section class="day" aria-label="今日の時刻表"><div class="plot">${lbl}${a}</div></section>`;
 }
-// 時刻が進んだら「今」の線と予定の印だけを動かす（全体は描き直さない）
+// 時刻が進んだら「今」の線と予定の印と日付だけを動かす（全体は描き直さない）
 function tickClock() {
   if (!state) return;
   $("#sched").innerHTML = schedHtml();
+  $("#date").textContent = dateText();
   const area = $(".area"); if (!area) return;
   const h0 = +area.dataset.h0, h1 = +area.dataset.h1, now = nowMin();
-  const p = `${Math.min(100, Math.max(0, (now - h0 * 60) / ((h1 - h0) * 60) * 100)).toFixed(3)}%`;
-  const nl = $(".nowl", area); if (nl) { nl.style.left = p; nl.firstChild.textContent = `今 ${clock(now)}`; }
-  const ps = $(".past", area); if (ps) ps.style.width = p;
+  const nl = $(".nowl", area);
+  if (nl) { nl.style.left = `${Math.min(100, Math.max(0, (now - h0 * 60) / ((h1 - h0) * 60) * 100)).toFixed(3)}%`; nl.firstChild.textContent = clock(now); }
 }
 setInterval(tickClock, 30000);
 
@@ -496,9 +474,9 @@ setInterval(tickClock, 30000);
 const LEAD = { working: "作業中", idle: "待機", waiting: "答え待ち" };
 function leadHtml(p) {
   const l = p.lead; if (!l || typeof l !== "object") return "";
-  const st = LEAD[l.status] ? l.status : "idle", g = { working: "running", idle: "idle", waiting: "decide" }[st];
-  const at = hm(l.updated)?.text || "", sum = String(l.summary || "");
-  return `<div class="lead ${st}" data-tip="${esc(`担当：${LEAD[st]}${at ? "（" + at + "）" : ""}${sum ? "　" + sum : ""}`)}"><span class="lead-st"><span class="lead-who">担当</span>${glyph(g)}${LEAD[st]}</span>` +
+  const st = LEAD[l.status] ? l.status : "idle", at = hm(l.updated)?.text || "", sum = String(l.summary || "");
+  const word = st === "waiting" ? `<b class="hl">${LEAD[st]}</b>` : `<b>${LEAD[st]}</b>`;
+  return `<div class="lead ${st}" data-tip="${esc(`担当：${LEAD[st]}${at ? "（" + at + "）" : ""}${sum ? "　" + sum : ""}`)}"><span class="lead-st">担当${word}</span>` +
     `<span class="lead-at">${esc(at)}</span>${sum ? `<span class="lead-sum">${esc(sum)}</span>` : ""}</div>`;
 }
 
@@ -506,18 +484,18 @@ function leadHtml(p) {
 const rank = it => { const st = itemState(it); return st === "decide" ? (it.urgent ? 0 : 1) : { answered: 2, running: 3, done: 4 }[st]; };
 function tokHtml(it) {
   const st = itemState(it), up = isUpdated(it);
-  return `<button type="button" class="tok ov-node ${st} ${up ? "up" : ""}" data-tab="${esc(it.project)}" data-item="${esc(it.id)}">${glyph(st)}<span class="tok-t">${esc(it.title)}</span>` +
-    `<span class="tok-m">${LABEL[st]}${it.urgent && st !== "done" ? '<span class="tag urg">急ぎ</span>' : ""}${up ? '<span class="upd">更新</span>' : ""}</span></button>`;
+  return `<button type="button" class="tok ov-node ${st} ${up ? "up" : ""}" data-tab="${esc(it.project)}" data-item="${esc(it.id)}"><span class="tok-t">${titleSpan(it, st)}</span>` +
+    `<span class="tok-m">${stWord(st)}${it.urgent && st !== "done" ? '<span class="urg">急ぎ</span>' : ""}${up ? updMark() : ""}</span></button>`;
 }
 function laneHtml(p) {
   const its = itemsOf(p.id), c = countStates(its), up = its.filter(isUpdated).length;
   const shown = its.map((it, k) => ({ it, k })).filter(x => ui.showDone || !isDone(x.it)).sort((a, b) => rank(a.it) - rank(b.it) || a.k - b.k).map(x => x.it);
   let body = shown.map(tokHtml).join("");
   if (!its.length) body = `<div class="lane-note">項目はありません</div>`;
-  else if (!shown.length) body = `<div class="lane-note">${glyph("done")}すべて済み（${c.done}件）</div>`;
+  else if (!shown.length) body = `<div class="lane-note all">すべて済み（${c.done}件）</div>`;
   else if (!ui.showDone && c.done) body += `<div class="lane-note">済み ${c.done} 件は畳んでいます</div>`;
-  return `<article class="lane"><button type="button" class="lane-h ov-node" data-tab="${esc(p.id)}">${ringSvg(c, 58)}<span><span class="lane-name">${esc(p.label)}${up ? `<span class="upd">更新 ${up}</span>` : ""}</span>${breakdown(c)}</span></button>` +
-    `${leadHtml(p)}<div class="lane-items">${body}</div></article>`;
+  return `<article class="lane"><button type="button" class="lane-h ov-node" data-tab="${esc(p.id)}"><span class="lane-name">${esc(p.label)}${up ? updMark(up) : ""}</span>` +
+    `<span class="lane-n">${bigNum(c.decide)}<small>判断待ち</small></span>${breakdown(c)}</button>${leadHtml(p)}<div class="lane-items">${body}</div></article>`;
 }
 
 // ---------- 描画 ----------
@@ -537,22 +515,24 @@ function render() {
   const s = state, r = route();
   $("#tip").classList.remove("show");
   $("#title").textContent = titleText();
+  $("#date").textContent = dateText();
   $("#sched").innerHTML = schedHtml();
   const c = countStates(s.items);
-  $("#counts").innerHTML = STATES.filter(k => k !== "running" || c.running).map(k => `<span class="cnt ${c[k] ? "" : "zero"}">${glyph(k)}${LABEL[k]}<b>${c[k]}</b></span>`).join("");
+  const pending = s.routing && +s.routing.pending > 0 ? `<span class="pending" title="送った答えと一言のうち、Claude がまだ受け取っていない件数"><i>Claude</i>未処理<b>${+s.routing.pending}</b></span>` : "";
+  $("#counts").innerHTML = pending + STATES.filter(k => k !== "running" || c.running).map(k => `<span class="${c[k] ? "" : "zero"}">${LABEL[k]}<b>${c[k]}</b></span>`).join("");
   const last = (s.log || [])[(s.log || []).length - 1];
-  $("#tick").innerHTML = last ? `<span class="ts">${esc(hm(last.ts)?.text || last.ts)}</span>${md(last.text)}` : "—";
+  $("#tick").innerHTML = last ? `<span class="ts">${esc(hm(last.ts)?.text || last.ts)}</span>${logProj(last)}<span class="pen">${md(last.text)}</span>` : "—";
   const bn = [];
-  if (s.errors?.length) bn.push(`<div class="banner err">${s.errors.map(e => `<div>${esc(e)}</div>`).join("")}</div>`);
-  if (s.warnings?.length) bn.push(`<div class="banner warn">${s.warnings.map(e => `<div>${esc(e)}</div>`).join("")}</div>`);
+  if (s.errors?.length) bn.push(`<div class="banner"><b>エラー</b>${s.errors.map(e => esc(e)).join("<br>")}</div>`);
+  if (s.warnings?.length) bn.push(`<div class="banner"><b>注意</b>${s.warnings.map(e => esc(e)).join("<br>")}</div>`);
   $("#banners").innerHTML = bn.join("");
   const pend = pj => itemsOf(pj).filter(i => itemState(i) === "decide").length;
   const upd = pj => itemsOf(pj).filter(isUpdated).length;
   const tabs = [{ id: "overview", label: "全体" }, ...s.projects];
   $("#tabs").innerHTML = tabs.map(t => {
     let b = "";
-    if (t.id === "overview") { const u = unreadLog(); if (u) b = `<span class="newdot">新着 ${u}</span>`; }
-    else { b = `<span class="badge ${pend(t.id) ? "" : "zero"}" title="判断待ち ${pend(t.id)} 件">${pend(t.id)}</span>`; if (upd(t.id)) b += `<span class="newdot">更新 ${upd(t.id)}</span>`; }
+    if (t.id === "overview") { const u = unreadLog(); if (u) b = `<span class="newdot hl">新着 ${u}</span>`; }
+    else { b = `<span class="badge ${pend(t.id) ? "" : "zero"}" title="判断待ち ${pend(t.id)} 件">${pend(t.id)}</span>`; if (upd(t.id)) b += `<span class="newdot hl">更新 ${upd(t.id)}</span>`; }
     return `<button class="tab ${r.tab === t.id ? "on" : ""}" data-tab="${esc(t.id)}">${esc(t.label)}${b}</button>`;
   }).join("");
   document.querySelectorAll(".tab").forEach(b => b.onclick = () => go(b.dataset.tab));
@@ -560,7 +540,7 @@ function render() {
   setTitle();
 }
 
-// 光らせた後に印を消すための描き直し（入力中は描き直さない）。前の予約は取り消す（開いたばかりの光りを途中で消さない）
+// 引いた蛍光ペンと印を消すための描き直し（入力中は描き直さない）。前の予約は取り消す（開いたばかりの印を途中で消さない）
 let rerenderTimer;
 function rerenderLater() {
   clearTimeout(rerenderTimer);
@@ -576,16 +556,19 @@ function renderOverview() {
   const s = state, u = unreadLog(), logs = (s.log || []).map((l, i) => ({ ...l, i }));
   const newest = new Set(logs.slice(logs.length - u).map(l => l.i));
   const log = logs.sort((a, b) => String(b.ts).localeCompare(String(a.ts)) || b.i - a.i);
+  const c = countStates(s.items);
   const lanes = s.items.length ? `<div class="lanes">${s.projects.map(laneHtml).join("")}</div>`
-    : `<div class="panel"><div class="empty big">まだ項目がありません。作業フォルダーの <code>items.json</code> に項目を書くと、ここに出ます。</div></div>`;
-  const feed = log.length ? `<ul class="feed">${log.map(l => `<li class="${u && newest.has(l.i) ? "fresh" : ""}"><span class="ts">${esc(hm(l.ts)?.text || l.ts)}</span><span class="tx">${md(l.text)}</span></li>`).join("")}</ul>` : `<p class="muted">まだありません</p>`;
-  const memos = (s.messages || []).length ? `<ul class="feed memo">${s.messages.slice().reverse().map(m => `<li><span class="ts">${esc(hm(m.ts)?.text || m.ts)}</span><span class="tx">${esc(m.note)}</span></li>`).join("")}</ul>` : `<p class="muted">一言はヘッダーの欄から、どのタブからでも送れます</p>`;
+    : `<div class="empty big">まだ項目がありません。作業フォルダーの <code>items.json</code> に項目を書くと、ここに出ます。</div>`;
+  const feed = log.length ? `<ul class="feed">${log.map(l => `<li class="${u && newest.has(l.i) ? "fresh" : ""}"><span class="ts">${esc(hm(l.ts)?.text || l.ts)}</span><span class="tx">${logProj(l)}<span class="pen">${md(l.text)}</span></span></li>`).join("")}</ul>` : `<p class="empty">まだありません</p>`;
+  const memos = (s.messages || []).length ? `<ul class="feed">${s.messages.slice().reverse().map(m => `<li><span class="ts">${esc(hm(m.ts)?.text || m.ts)}</span><span class="tx">${esc(m.note)}${routedMark(m)}</span></li>`).join("")}</ul>` : `<p class="empty">一言はヘッダーの欄から、どのタブからでも送れます</p>`;
+  const rest = ["answered", "running", "done"].filter(k => c[k] || k !== "running").map(k => `${LABEL[k]} ${c[k]}`).join("　");
   $("#view").innerHTML = `<div class="ov">
-    <div class="ov-head"><p class="headline"><span class="who"><span class="live"></span>Claude</span>${md(s.headline)}</p><label class="tog"><input type="checkbox" id="showdone" ${ui.showDone ? "checked" : ""}>済みも出す</label></div>
+    <div class="ov-lead"><div class="tally">${bigNum(c.decide)}<span class="tally-l"><b>判断待ち</b><span>${rest}</span></span></div>
+      <p class="headline">${md(s.headline)}</p><label class="tog"><input type="checkbox" id="showdone" ${ui.showDone ? "checked" : ""}>済みも出す</label></div>
     ${dayStrip()}
     <div class="ov-body">${lanes}
-      <aside class="side"><section class="panel"><h2>${glyph("answered")}Claude からの返事・動いたこと</h2><div class="scroll">${feed}</div></section>
-      <section class="panel"><h2>${glyph("decide")}送ったメモ</h2><div class="scroll">${memos}</div></section></aside>
+      <aside class="side"><section class="panel"><h2><i>Claude</i> からの返事・動いたこと</h2><div class="scroll">${feed}</div></section>
+      <section class="panel"><h2>送ったメモ</h2><div class="scroll">${memos}</div></section></aside>
     </div></div>`;
   document.querySelectorAll(".ov-node, .mk[data-item]").forEach(g => g.onclick = () => {
     const it = g.dataset.item && state.items.find(i => i.id === g.dataset.item);
@@ -598,26 +581,26 @@ function renderOverview() {
 
 function rowHtml(it, cur) {
   const st = itemState(it), up = isUpdated(it);
-  return `<div class="row ${it.id === cur?.id ? "on" : ""} ${st === "done" ? "donerow" : ""}" data-item="${esc(it.id)}">${glyph(st)}<div><div class="t">${esc(it.title)}</div>` +
-    `<div class="s"><span class="st-${st}">${LABEL[st]}</span>${it.urgent && st !== "done" ? '<span class="tag urg">急ぎ</span>' : ""}${up ? '<span class="upd">更新</span>' : ""}</div></div></div>`;
+  return `<div class="row ${it.id === cur?.id ? "on" : ""} ${st === "done" ? "donerow" : ""}" data-item="${esc(it.id)}"><div class="t">${titleSpan(it, st)}</div>` +
+    `<div class="s">${stWord(st)}${it.urgent && st !== "done" ? '<span class="urg">急ぎ</span>' : ""}${up ? updMark() : ""}</div>` +
+    `${st === "done" ? "" : `<button type="button" class="rdone" data-done="${esc(it.id)}" title="この項目を完了にする">完了</button>`}</div>`;
 }
 
 function renderProject(pj, itemId) {
   const act = activeOrder(pj), dn = doneOrder(pj), cur = currentOf(pj, itemId);
   const p = state.projects.find(x => x.id === pj), c = countStates(itemsOf(pj));
   if (cur && isDone(cur)) ui.open["done-" + pj] = true;
-  let list = `<div class="list-top"><div class="list-h">${ringSvg(c, 46)}<div><div class="lane-name">${esc(p.label)}</div>${breakdown(c)}</div></div>${leadHtml(p)}</div>`;
+  let list = `<div class="list-top"><div class="list-h"><span class="lane-name">${esc(p.label)}</span><span class="lane-n">${bigNum(c.decide)}<small>判断待ち</small></span>${breakdown(c)}</div>${leadHtml(p)}</div>`;
   list += act.length ? grouped(act).map(g => (g.name ? `<div class="grp">${esc(g.name)}</div>` : "") + g.items.map(it => rowHtml(it, cur)).join("")).join("")
     : `<div class="empty">残っている項目はありません</div>`;
-  if (dn.length) list += `<details class="donebox" data-key="done-${esc(pj)}" ${ui.open["done-" + pj] ? "open" : ""}><summary>${glyph("done")}済み（${dn.length}）</summary>${dn.map(it => rowHtml(it, cur)).join("")}</details>`;
+  if (dn.length) list += `<details class="donebox" data-key="done-${esc(pj)}" ${ui.open["done-" + pj] ? "open" : ""}><summary>済み（${dn.length}）</summary>${dn.map(it => rowHtml(it, cur)).join("")}</details>`;
   const order = navOrder(pj), idx = cur ? order.indexOf(cur) : -1;
   const wasUpdated = cur && isUpdated(cur);
-  const steps = order.length > 1 ? `<span class="steps">${order.map((it, k) => `<i class="${itemState(it)} ${k === idx ? "cur" : ""}" data-step="${esc(it.id)}" data-tip="${esc(LABEL[itemState(it)] + "　" + it.title)}"></i>`).join("")}</span>` : "";
   $("#view").innerHTML = `<div class="pj"><div class="list">${list}</div><div class="detail">${cur ? detailHtml(cur, wasUpdated) : `<div class="empty">項目がありません</div>`}
     <div class="d-f"><button id="prev" ${idx <= 0 ? "disabled" : ""}>← 前</button><button id="next" ${idx < 0 || idx >= order.length - 1 ? "disabled" : ""}>次 →</button>
-    <span class="pos">${idx + 1} / ${order.length}</span>${steps}<span class="spacer"></span><span class="kbd">j</span><span class="kbd">k</span><span class="muted">で移動、</span><span class="kbd">←</span><span class="kbd">→</span><span class="muted">でタブ</span></div></div></div>`;
+    <span class="pos">${idx + 1} / ${order.length}</span><span class="spacer"></span><span class="kbd">j</span><span class="kbd">k</span><span class="muted">で移動、</span><span class="kbd">x</span><span class="muted">で完了、</span><span class="kbd">←</span><span class="kbd">→</span><span class="muted">でタブ</span></div></div></div>`;
   document.querySelectorAll(".row").forEach(rw => rw.onclick = () => go(pj, rw.dataset.item));
-  document.querySelectorAll("[data-step]").forEach(st => st.onclick = () => go(pj, st.dataset.step));
+  document.querySelectorAll("[data-done]").forEach(b => b.onclick = e => { e.stopPropagation(); setDone(b.dataset.done, true); });
   const db = $("details.donebox"); if (db) db.ontoggle = () => { ui.open["done-" + pj] = db.open; };
   $("#prev").onclick = () => idx > 0 && go(pj, order[idx - 1].id);
   $("#next").onclick = () => idx < order.length - 1 && go(pj, order[idx + 1].id);
@@ -629,10 +612,12 @@ function renderProject(pj, itemId) {
 
 function detailHtml(it, fresh) {
   const st = itemState(it), f = fresh ? "fresh" : "";
-  let h = `<div class="d-h ${f}"><h3>${esc(it.title)}</h3>${it.urgent && st !== "done" ? '<span class="urgent">急ぎ</span>' : ""}<span class="pill ${st}">${glyph(st)}${LABEL[st]}</span></div><div class="d-b">`;
+  const kick = [it.group ? esc(it.group) : "", stWord(st), it.urgent && st !== "done" ? '<span class="urg">急ぎ</span>' : "", fresh ? updMark() : ""].filter(Boolean).join("");
+  const btn = st === "done" ? `<button type="button" class="donebtn" id="donebtn" data-undo="1">未完了に戻す</button>` : `<button type="button" class="donebtn" id="donebtn">完了</button>`;
+  let h = `<div class="d-h ${f}"><div class="d-k">${kick}</div><h3><span class="pen ${st === "decide" ? "hl" : ""}">${esc(it.title)}</span></h3>${btn}</div><div class="d-b">`;
   if (it.summary?.length) h += `<ul>${it.summary.map(x => `<li>${md(x)}</li>`).join("")}</ul>`;
   if (it.details?.length) h += `<details class="more" data-key="d-${esc(it.id)}" ${ui.open["d-" + it.id] ? "open" : ""}><summary>くわしく</summary><ul>${it.details.map(x => `<li>${md(x)}</li>`).join("")}</ul></details>`;
-  // 色を class で付けた図（class="themed"）は画面の色に合わせ、そうでない図はダークでも明るい紙の上に出す
+  // 色を class で付けた図（class="themed"）は紙面の色に合わせ、そうでない図はダークでも明るい紙の上に出す
   if (it.svg) h += `<div class="diagram ${/^\s*<svg[^>]*\bclass=["'][^"']*\bthemed\b/i.test(it.svg) ? "" : "paper"}">${it.svg}</div>`;
   if (it.links?.length) h += `<div class="links">${it.links.map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">${esc(l.label)} ↗</a>`).join("")}</div>`;
   (it.drafts || []).forEach((d, i) => {
@@ -641,15 +626,17 @@ function detailHtml(it, fresh) {
     if (d.link) h += `<a href="${esc(d.link)}" target="_blank" rel="noopener noreferrer">開く ↗</a>`;
     h += `<button data-copy="${key}">コピー</button></div><pre id="${key}">${esc(d.text)}</pre></div>`;
   });
-  (it.questions || []).forEach(q => {
+  const qs = it.questions || [];
+  qs.forEach((q, n) => {
     const sel = ui.sel[q.id] ?? null;
-    h += `<div class="q ${st === "done" ? "closed" : q.answer ? "answered" : ""}" data-qid="${esc(q.id)}"><div class="q-t">${md(q.text)}</div>`;
+    const turn = st !== "done" && !q.answer ? `<span class="turn hl">あなたの番</span>` : "";
+    h += `<div class="q ${st === "done" ? "closed" : q.answer ? "answered" : ""}" data-qid="${esc(q.id)}"><div class="q-k"><span>問 ${n + 1}${qs.length > 1 ? " / " + qs.length : ""}</span>${turn}</div><div class="q-t">${md(q.text)}</div>`;
     if (st !== "done") {  // 済みの項目では選択肢と入力欄を出さない
       if (q.options.length) h += `<div class="opts">${q.options.map(o => `<button class="opt ${sel === o ? "sel" : ""}" data-opt="${esc(o)}">${esc(o)}</button>`).join("")}</div>`;
       h += `<div class="q-row"><textarea data-note placeholder="メモ（任意）">${esc(ui.note[q.id] || "")}</textarea><button class="primary" data-send ${sel || ui.note[q.id] ? "" : "disabled"}>送る</button></div>`;
     }
-    if (q.answer) h += `<div class="ans">${glyph("decide")}<span>送った（${esc(q.answer.ts)}）：${esc(q.answer.choice || "")}${q.answer.choice && q.answer.note ? "／" : ""}${esc(q.answer.note || "")}</span></div>`;
-    if (q.reply) h += `<div class="reply ${f}">${md(q.reply)}</div>`;
+    if (q.answer) h += `<div class="ans">送った ${esc(hm(q.answer.ts)?.text || q.answer.ts)}　<span>${esc(q.answer.choice || "")}${q.answer.choice && q.answer.note ? "／" : ""}${esc(q.answer.note || "")}</span>${routedMark(q.answer)}</div>`;
+    if (q.reply) h += `<div class="reply ${f}"><span class="pen">${md(q.reply)}</span></div>`;
     h += `</div>`;
   });
   return h + `</div>`;
@@ -662,7 +649,33 @@ async function copyText(text) {
   }
 }
 
+// ---------- 完了（利用者が項目を済みにする・未完了に戻す） ----------
+// 送ったらすぐ見た目を変え、開いていた項目なら次の判断待ちへ進む。トーストから元に戻せる
+async function setDone(id, done) {
+  const it = state && state.items.find(i => i.id === id); if (!it) return false;
+  const r = await post("/api/done", { item: id, done });
+  if (!r.ok) { toast(r.status === 404 ? "この項目はもう無い（Claude が消したか、名前が変わった）" : "送れなかった"); return false; }
+  const pj = it.project, act = activeOrder(pj), route0 = route(), wasCur = route0.tab === pj && currentOf(pj, route0.item)?.id === id;
+  const wasSeen = seen && seen.items[id] === sig(it);
+  it.status = done ? "done" : (it.status === "done" ? "decide" : it.status);
+  it.user_done = { ts: "", item: id, done };
+  if (wasSeen) markSeen(it);  // 自分の操作で「更新」の印を付けない
+  lastJson = "";
+  if (done) {
+    const el = $("#toast");
+    el.innerHTML = `<b>完了</b><span>${esc(it.title)}</span><button type="button" id="undo">元に戻す</button>`;
+    el.classList.add("show", "act"); clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove("show", "act"), 6000);
+    $("#undo").onclick = async () => { el.classList.remove("show", "act"); if (await setDone(id, false)) go(pj, id); };
+    const nxt = wasCur ? nextDecide(act, it) : null;
+    if (nxt) go(pj, nxt.id); else render();
+  } else { toast("未完了に戻した"); render(); }
+  poll();
+  return true;
+}
+
 function bindDetail(pj, cur) {
+  const db = $("#donebtn"); if (db) db.onclick = () => setDone(cur.id, !db.dataset.undo);
   document.querySelectorAll("details.more[data-key]").forEach(d => d.ontoggle = () => ui.open[d.dataset.key] = d.open);
   document.querySelectorAll("[data-copy]").forEach(b => b.onclick = async () => {
     toast(await copyText(document.getElementById(b.dataset.copy).textContent) ? "コピーした" : "コピーできなかった");
@@ -685,11 +698,7 @@ function bindDetail(pj, cur) {
       // この件の問いが全部答えられたら、次の判断待ちへ進む
       const left = (cur.questions || []).filter(q => q.id !== qid && !q.answer);
       lastJson = "";
-      if (!left.length) {
-        const act = activeOrder(pj);
-        const nxt = act.slice(act.indexOf(cur) + 1).concat(act).find(i => i.id !== cur.id && itemState(i) === "decide");
-        if (nxt) go(pj, nxt.id);
-      }
+      if (!left.length) { const nxt = nextDecide(activeOrder(pj), cur); if (nxt) go(pj, nxt.id); }
       poll();
     };
   });
@@ -712,14 +721,15 @@ document.addEventListener("keydown", e => {
   const tabs = ["overview", ...state.projects.map(p => p.id)], ti = Math.max(0, tabs.indexOf(r.tab));
   if (e.key === "ArrowRight" || e.key === "l") { e.preventDefault(); go(tabs[(ti + 1) % tabs.length]); return; }
   if (e.key === "ArrowLeft" || e.key === "h") { e.preventDefault(); go(tabs[(ti - 1 + tabs.length) % tabs.length]); return; }
-  if (r.tab === "overview") return;
+  if (r.tab === "overview" || !state.projects.find(p => p.id === r.tab)) return;
+  if (e.key === "x") { const cur = currentOf(r.tab, r.item); if (cur && !isDone(cur)) { e.preventDefault(); setDone(cur.id, true); } return; }
   const order = navOrder(r.tab); if (!order.length) return;
   const i = Math.max(0, order.indexOf(currentOf(r.tab, r.item)));
   if (e.key === "j" || e.key === "ArrowDown") { e.preventDefault(); go(r.tab, order[Math.min(order.length - 1, i + 1)].id); }
   if (e.key === "k" || e.key === "ArrowUp") { e.preventDefault(); go(r.tab, order[Math.max(0, i - 1)].id); }
 });
 
-// 図の印などに乗せたときの説明
+// 時刻表の印などに乗せたときの説明
 document.addEventListener("mouseover", e => {
   const tip = $("#tip"), t = e.target.closest?.("[data-tip]");
   if (!t) { tip.classList.remove("show"); return; }
@@ -740,21 +750,24 @@ async function poll() {
     if (j.error) { $("#view").innerHTML = `<p class="err">サーバーのエラー：${esc(j.error)}</p>`; return; }
     $("#gen").textContent = "更新 " + ((String(j.generated).match(/\d{1,2}:\d{2}(:\d{2})?\s*$/) || [j.generated])[0]);
     if (!seen) loadSeen(j);
-    // Claude が「動いたこと」を書いたら、トーストと帯で知らせる
+    // Claude が「動いたこと」を書いたら、トーストと帯で知らせる（帯には蛍光ペンを引く）
     const ln = (j.log || []).length;
-    if (prevLogN !== null && ln > prevLogN) {
-      toast(`<b>Claude</b>${md(j.log[ln - 1].text)}`, 5000);
-      const t = $("#tick"); if (t) { t.classList.remove("fresh"); void t.offsetWidth; t.classList.add("fresh"); }
-      const lv = $("#live"); if (lv) { lv.classList.remove("ping"); void lv.offsetWidth; lv.classList.add("ping"); }
-    }
+    let newLog = false;
+    if (prevLogN !== null && ln > prevLogN) { toast(`<b>Claude</b><span>${state ? logProj(j.log[ln - 1]) : ""}${md(j.log[ln - 1].text)}</span>`, 5000); newLog = true; }
     prevLogN = ln;
     const cmp = txt.replace(/"generated":\s*"[^"]*"/, "");  // 時刻だけが変わったときは描き直さない
     if (cmp !== lastJson && !typing()) {
+      // 利用者自身の「完了」「未完了に戻す」で status が変わっても、「更新」の印は付けない
+      if (state && seen) for (const it of j.items) {
+        const old = state.items.find(o => o.id === it.id);
+        if (old && JSON.stringify(old.user_done?.done ?? null) !== JSON.stringify(it.user_done?.done ?? null) && seen.items[it.id] === sig(old)) { seen.items[it.id] = sig(it); saveSeen(); }
+      }
       lastJson = cmp; state = j;
       const body = $(".d-b"), y = body ? body.scrollTop : 0;
       render();
       const nb = $(".d-b"); if (nb) nb.scrollTop = y;
     }
+    if (newLog) { const t = $("#tick"); if (t) { t.classList.remove("fresh"); void t.offsetWidth; t.classList.add("fresh"); } }
   } catch (e) { $("#gen").innerHTML = `<span class="err">サーバーにつながらない</span>`; }
 }
 poll(); setInterval(poll, 4000);
